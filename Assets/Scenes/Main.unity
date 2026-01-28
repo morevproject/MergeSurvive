@@ -5661,7 +5661,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cedb3d335b3da974f919956883d3e9c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  target: {fileID: 0}
+  target: {fileID: 4754878438183398883}
   offset: {x: 5, y: 4.5, z: -5}
 --- !u!4 &969377176 stripped
 Transform:
@@ -11604,6 +11604,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2135030052}
   m_CullTransparentMesh: 1
+--- !u!4 &4754878438183398883 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 297863963099235924, guid: 829a2e17cc5d4d84c901c3d3f598008e, type: 3}
+  m_PrefabInstance: {fileID: 6619630095493182767}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6619630095493182767
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11656,6 +11661,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 5418544717412557642, guid: 829a2e17cc5d4d84c901c3d3f598008e, type: 3}
+      propertyPath: attackButton
+      value: 
+      objectReference: {fileID: 1145624916}
+    - target: {fileID: 5418544717412557642, guid: 829a2e17cc5d4d84c901c3d3f598008e, type: 3}
+      propertyPath: attackButtonObject
+      value: 
+      objectReference: {fileID: 1145624912}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
