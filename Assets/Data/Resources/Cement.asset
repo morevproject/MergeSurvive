@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b58fef9d338c3c84ea771db035b716dc, type: 3}
+  m_Name: Cement
+  m_EditorClassIdentifier: 
+  ItemName: Cement
+  DisplayName: "\u0426\u0435\u043C\u0435\u043D\u0442"
+  Description: 
+  Icon: {fileID: 21300000, guid: 8cee0338dbf73e741b2a594cbea00e82, type: 3}
+  itemType: 0
+  IsStackable: 1
+  MaxStackSize: 99
+  minDamage: 1
+  maxDamage: 3
+  attackRange: 1.5
+  armorValue: 0
+  healAmount: 0
