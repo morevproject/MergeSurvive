@@ -7,7 +7,8 @@ public enum ToolType
     Axe = 1,       // Топор
     Pickaxe = 2,   // Кирка
     Hammer = 3,    // Молот
-    Weapon = 4     // Оружие
+    Weapon = 4,    // Оружие
+    Shovel = 5     // Лопата
 }
 
 // 2. Уровни предметов (для проверки "мощности")

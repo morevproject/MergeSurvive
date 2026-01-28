@@ -13,13 +13,14 @@ public class PlayerProfileUI : MonoBehaviour
     public Button avatarButton;          
     
     [Header("Slots")]
-    public EquipmentSlotUI weaponSlot;
-    public EquipmentSlotUI armorSlot;
-    public EquipmentSlotUI ammoSlot;
+    public EquipmentSlotUI weaponSlot;   // Слот оружия
+    public EquipmentSlotUI armorSlot;    // Слот брони
+    public EquipmentSlotUI ammoSlot;     // Слот боеприпасов (если оружие требует)
     
     // НОВЫЕ ССЫЛКИ
     public EquipmentSlotUI axeSlot;      // Слот топора
     public EquipmentSlotUI pickaxeSlot;  // Слот кирки
+    public EquipmentSlotUI shovelSlot;   // Слот лопаты
 
     private bool isPanelExpanded = false;
 

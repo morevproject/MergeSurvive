@@ -7,7 +7,7 @@ public enum ItemType
     Weapon,
     Armor,
     Food,
-    Ammo // НОВОЕ: Боеприпасы
+    Ammo
 }
 
 // УДАЛЕНО: enum ToolType, так как он уже есть в GameEnums.cs

@@ -9,6 +9,7 @@ public class PlayerEquipmentVisuals : MonoBehaviour
     [Header("Tools")]
     public GameObject axeModel;     
     public GameObject pickaxeModel; 
+    public GameObject shovelModel; // <--- НОВОЕ ПОЛЕ
 
     [Header("Ranged Weapons")]
     public GameObject bowModel;     
@@ -45,11 +46,10 @@ public class PlayerEquipmentVisuals : MonoBehaviour
                 break;
 
             // Инструменты НЕ показываем (они в "кармане")
-            // case "Axe": ... ничего не делаем
         }
     }
 
-    // 2. ВРЕМЕННЫЙ метод: вызывай его из скрипта сбора ресурсов (Gathering)
+    // 2. ВРЕМЕННЫЙ метод: вызывай его из скрипта сбора ресурсов (InteractionUIManager)
     public void ShowToolTemporarily(string toolType, float duration)
     {
         StartCoroutine(ToolAnimationRoutine(toolType, duration));
@@ -63,6 +63,7 @@ public class PlayerEquipmentVisuals : MonoBehaviour
         // 2. Показываем нужный инструмент
         if (toolType == "Axe" && axeModel != null) axeModel.SetActive(true);
         if (toolType == "Pickaxe" && pickaxeModel != null) pickaxeModel.SetActive(true);
+        if (toolType == "Shovel" && shovelModel != null) shovelModel.SetActive(true); // <--- ЛОПАТА
 
         // 3. Ждем пока пройдет анимация удара
         yield return new WaitForSeconds(duration);
@@ -76,6 +77,7 @@ public class PlayerEquipmentVisuals : MonoBehaviour
         if (swordModel != null) swordModel.SetActive(false);
         if (axeModel != null) axeModel.SetActive(false);
         if (pickaxeModel != null) pickaxeModel.SetActive(false);
+        if (shovelModel != null) shovelModel.SetActive(false); // <--- ПРЯЧЕМ ЛОПАТУ
         if (bowModel != null) bowModel.SetActive(false);
     }
 }

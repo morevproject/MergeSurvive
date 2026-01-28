@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 
 public enum EquipmentSlotType
 {
-    Weapon, Armor, Ammo, ToolAxe, ToolPickaxe
+    Weapon, Armor, Ammo, ToolAxe, ToolPickaxe, ToolShovel
 }
 
 public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
@@ -95,6 +95,7 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
             case EquipmentSlotType.Ammo: return item.itemType == ItemType.Ammo;
             case EquipmentSlotType.ToolAxe: return item.itemType == ItemType.Tool && item.toolType == ToolType.Axe;
             case EquipmentSlotType.ToolPickaxe: return item.itemType == ItemType.Tool && item.toolType == ToolType.Pickaxe;
+            case EquipmentSlotType.ToolShovel: return item.itemType == ItemType.Tool && item.toolType == ToolType.Shovel;
         }
         return false;
     }

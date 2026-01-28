@@ -5,10 +5,10 @@ public class InteractionHandler : MonoBehaviour
     public static InteractionHandler Instance;
 
     [Header("Settings")]
-    [SerializeField] private float interactionRadius = 2f; // Радиус поиска
-    [SerializeField] private LayerMask interactableLayer;   // Слой ресурсов
+    [SerializeField] private float interactionRadius = 2f;
+    [SerializeField] private LayerMask interactableLayer;
 
-    private WorldInteractable currentTarget; // То, что сейчас нашли
+    private WorldInteractable currentTarget;
 
     private void Awake()
     {
@@ -17,13 +17,12 @@ public class InteractionHandler : MonoBehaviour
 
     private void Update()
     {
-        // 1. ПРОВЕРКА НА МЕРТВУЮ ЦЕЛЬ (Самое важное!)
-        // Если цель была, но её уничтожили (null) или выключили (activeInHierarchy == false)
+        // Проверка: не исчезла ли цель (уничтожена/выключена)
         if (currentTarget != null)
         {
             if (currentTarget.gameObject == null || !currentTarget.gameObject.activeInHierarchy)
             {
-                ClearTarget(); // Мгновенно убираем кнопку
+                ClearTarget();
             }
         }
 
@@ -39,13 +38,11 @@ public class InteractionHandler : MonoBehaviour
 
         foreach (var hit in hits)
         {
-            // Пропускаем удаленные или выключенные объекты
             if (hit == null || hit.gameObject == null || !hit.gameObject.activeInHierarchy) continue;
 
             WorldInteractable interactable = hit.GetComponent<WorldInteractable>();
             if (interactable == null) interactable = hit.GetComponentInParent<WorldInteractable>();
 
-            // Доп. проверка: скрипт должен быть включен (enabled)
             if (interactable != null && interactable.isActiveAndEnabled)
             {
                 float dist = Vector3.Distance(transform.position, hit.transform.position);
@@ -57,44 +54,75 @@ public class InteractionHandler : MonoBehaviour
             }
         }
 
-        // Логика переключения
         if (nearest != currentTarget)
         {
             currentTarget = nearest;
 
             if (currentTarget != null)
             {
-                // Нашли новую цель -> Показываем кнопку
                 if (InteractionUIManager.Instance != null)
                     InteractionUIManager.Instance.ShowInteraction(currentTarget);
             }
             else
             {
-                // Целей нет -> Прячем кнопку
                 if (InteractionUIManager.Instance != null)
                     InteractionUIManager.Instance.HideInteraction();
             }
         }
     }
 
-    // Этот метод вызывает кнопка "Собрать"
-    // Этот метод вызывает кнопка "Собрать"
+    // --- ВОТ ЗДЕСЬ ГЛАВНЫЕ ИЗМЕНЕНИЯ ---
     public void InteractWithCurrentTarget()
     {
         if (currentTarget != null)
         {
-            // 1. Считаем реальный урон
-            int damageToDeal = 1; // По умолчанию (если статов нет)
-            
-            if (PlayerStats.Instance != null)
+            int damageToDeal = 1; // Базовый урон рукой
+
+            // Если есть доступ к профилю игрока (слотам)
+            if (PlayerProfileUI.Instance != null)
             {
-                damageToDeal = PlayerStats.Instance.TotalDamage;
+                string targetName = currentTarget.gameObject.name;
+                ItemData toolItem = null;
+
+                // 1. Проверяем, что именно мы бьем и какой инструмент нужен
+
+                // ЛОПАТА (Глина, Земля, Кучи) -> Лезем в слот лопаты
+                if (targetName.Contains("Clay") || targetName.Contains("Dirt") || targetName.Contains("Mound"))
+                {
+                    toolItem = PlayerProfileUI.Instance.shovelSlot.currentItem;
+                }
+                // ТОПОР (Дерево) -> Лезем в слот топора
+                else if (targetName.Contains("Tree") || targetName.Contains("Wood") || targetName.Contains("Log"))
+                {
+                    toolItem = PlayerProfileUI.Instance.axeSlot.currentItem;
+                }
+                // КИРКА (Камень, Руда) -> Лезем в слот кирки
+                else if (targetName.Contains("Rock") || targetName.Contains("Stone") || targetName.Contains("Ore"))
+                {
+                    toolItem = PlayerProfileUI.Instance.pickaxeSlot.currentItem;
+                }
+
+                // 2. Если нашли правильный инструмент в слоте — берем ЕГО урон
+                if (toolItem != null)
+                {
+                    // Используем случайный разброс, если в ItemData есть min/maxDamage
+                    // Если у тебя поле называется просто damage, замени на: toolItem.damage
+                    damageToDeal = Random.Range(toolItem.minDamage, toolItem.maxDamage);
+                }
+                // 3. Если инструмента нет, берем общую силу (например, оружие в руке)
+                else if (PlayerStats.Instance != null)
+                {
+                    damageToDeal = PlayerStats.Instance.TotalDamage;
+                }
             }
 
-            // 2. Бьем ресурса/врага сильным ударом
+            // Отладочный вывод, чтобы ты видел, какой урон прошел
+            Debug.Log($"[Interaction] Бьем {currentTarget.name}. Инструмент сработал? Урон: {damageToDeal}");
+
+            // Наносим удар
             currentTarget.Interact(damageToDeal);
-            
-            // ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА ПОСЛЕ УДАРА
+
+            // Проверка после удара (вдруг ресурс уничтожен)
             if (currentTarget == null || currentTarget.gameObject == null || !currentTarget.gameObject.activeInHierarchy)
             {
                 ClearTarget();
@@ -102,7 +130,6 @@ public class InteractionHandler : MonoBehaviour
         }
     }
 
-    // Вспомогательный метод для очистки
     private void ClearTarget()
     {
         currentTarget = null;
