@@ -86,4 +86,30 @@ public class CraftingUIManager : MonoBehaviour
         // Проверяем еще раз (на случай, если остались предметы)
         OnSlotUpdated();
     }
+
+    // =========================================================
+    // НОВЫЙ МЕТОД ДЛЯ КНОПКИ "ОЧИСТИТЬ"
+    // =========================================================
+    public void ClearAllSlots()
+    {
+        // Не даем очищать, если прямо сейчас идет анимация крафта
+        if (IsCrafting) return;
+
+        // 1. Пробегаем по всем слотам крафта и чистим их
+        foreach (var slot in craftingSlots)
+        {
+            if (slot != null)
+            {
+                slot.ClearSlot(); // Этот метод просто удаляет иконку и ItemData
+            }
+        }
+
+        // 2. Очищаем слот результата
+        if (resultSlot != null)
+        {
+            resultSlot.ClearSlot();
+        }
+
+        Debug.Log("UI Верстака очищен по кнопке.");
+    }
 }
