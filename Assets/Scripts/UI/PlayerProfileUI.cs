@@ -13,14 +13,14 @@ public class PlayerProfileUI : MonoBehaviour
     public Button avatarButton;          
     
     [Header("Slots")]
-    public EquipmentSlotUI weaponSlot;   // Слот оружия
-    public EquipmentSlotUI armorSlot;    // Слот брони
-    public EquipmentSlotUI ammoSlot;     // Слот боеприпасов (если оружие требует)
+    public EquipmentSlotUI weaponSlot;   
+    public EquipmentSlotUI armorSlot;    
+    public EquipmentSlotUI ammoSlot;     
     
-    // НОВЫЕ ССЫЛКИ
-    public EquipmentSlotUI axeSlot;      // Слот топора
-    public EquipmentSlotUI pickaxeSlot;  // Слот кирки
-    public EquipmentSlotUI shovelSlot;   // Слот лопаты
+    // Ссылки на инструменты
+    public EquipmentSlotUI axeSlot;      
+    public EquipmentSlotUI pickaxeSlot;  
+    public EquipmentSlotUI shovelSlot;   // <--- Лопата тут уже есть
 
     private bool isPanelExpanded = false;
 
@@ -34,12 +34,14 @@ public class PlayerProfileUI : MonoBehaviour
         if (PlayerStats.Instance != null)
         {
             PlayerStats.Instance.OnHealthChanged += UpdateHealthBar;
+            // Обновляем бар сразу
             UpdateHealthBar((float)PlayerStats.Instance.currentHealth / PlayerStats.Instance.maxHealth);
         }
 
         if (avatarButton != null)
             avatarButton.onClick.AddListener(TogglePanel);
 
+        // Прячем лишнее со старта
         if (ammoSlot != null) ammoSlot.gameObject.SetActive(false);
         if (equipmentPanel != null) equipmentPanel.gameObject.SetActive(false); 
     }
@@ -55,9 +57,10 @@ public class PlayerProfileUI : MonoBehaviour
         if (equipmentPanel != null) equipmentPanel.gameObject.SetActive(isPanelExpanded);
     }
 
+    // --- ГЛАВНЫЙ МЕТОД: ВЫЗЫВАЕТСЯ ИЗ СЛОТОВ ---
     public void OnEquipmentChanged()
     {
-        // 1. Логика стрел (как и была)
+        // 1. Логика стрел
         bool showAmmo = false;
         if (weaponSlot.currentItem != null && weaponSlot.currentItem.requiresAmmo)
         {
@@ -67,21 +70,23 @@ public class PlayerProfileUI : MonoBehaviour
         if (ammoSlot != null)
         {
             ammoSlot.gameObject.SetActive(showAmmo);
+            // Если слот скрылся, а там что-то лежало - снимаем (опционально)
             if (!showAmmo && ammoSlot.currentItem != null)
             {
                 ammoSlot.EquipItem(null); 
             }
         }
 
-        // 2. Пересчитываем статы (добавляем новые слоты в расчет)
+        // 2. Пересчитываем статы (ТЕПЕРЬ С БРОНЕЙ И ЛОПАТОЙ)
         if (PlayerStats.Instance != null)
         {
             PlayerStats.Instance.RecalculateStats(
                 weaponSlot.currentItem, 
-                armorSlot.currentItem, 
+                armorSlot.currentItem,         // <--- Броня пошла в расчет!
                 ammoSlot != null ? ammoSlot.currentItem : null,
-                axeSlot != null ? axeSlot.currentItem : null,      // Передаем топор
-                pickaxeSlot != null ? pickaxeSlot.currentItem : null // Передаем кирку
+                axeSlot != null ? axeSlot.currentItem : null,     
+                pickaxeSlot != null ? pickaxeSlot.currentItem : null,
+                shovelSlot != null ? shovelSlot.currentItem : null // <--- ДОБАВИЛИ ЛОПАТУ (6-й аргумент)
             );
         }
     }

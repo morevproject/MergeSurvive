@@ -39,7 +39,8 @@ public class ItemData : ScriptableObject
     public float attackRange = 2f;
 
     [Header("Defense & Sustain")]
-    public int armorValue;
+    [Range(0, 100)] // <--- ÄÎÁÀÂÈËÈ ÏÎËÇÓÍÎÊ (0-100%)
+    public int armorValue; // Áóäåò õðàíèòü ïðîöåíò çàùèòû
     public int healAmount;      
 
     public string GetName()

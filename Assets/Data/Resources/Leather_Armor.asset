@@ -18,10 +18,11 @@ MonoBehaviour:
   Icon: {fileID: 21300000, guid: aa0baf2ca579da54da8a904bb97ee1c2, type: 3}
   itemType: 3
   toolType: 0
+  requiresAmmo: 0
   IsStackable: 1
   MaxStackSize: 99
   minDamage: 1
   maxDamage: 1
   attackRange: 1.5
-  armorValue: 10
+  armorValue: 5
   healAmount: 0
