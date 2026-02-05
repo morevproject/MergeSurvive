@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 556126577498612895}
   - component: {fileID: 3405686105930061026}
   - component: {fileID: 1832635619246443084}
-  - component: {fileID: 3397735951588012755}
   - component: {fileID: 644026944008329737}
+  - component: {fileID: 4779070968955929599}
   m_Layer: 3
   m_Name: ClayMound
   m_TagString: Untagged
@@ -107,22 +107,6 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3397735951588012755
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4428363571449742939}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67644d39576aeba40bf14433bc7a6793, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainResource: {fileID: 11400000, guid: a08b9a9a1bb29fa4584e347abb930735, type: 2}
-  maxHealth: 10
-  rareResource: {fileID: 0}
-  rareDropChance: 0
 --- !u!114 &644026944008329737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,7 +123,20 @@ MonoBehaviour:
   maxHealth: 10
   currentHealth: 10
   drops:
-  - item: {fileID: 11400000, guid: a08b9a9a1bb29fa4584e347abb930735, type: 2}
+  - item: {fileID: 11400000, guid: a6ba5665679c2004facbe96349aa88d2, type: 2}
     dropChance: 1
     amountPerDamagePoint: 1
   selectionCircle: {fileID: 0}
+--- !u!114 &4779070968955929599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4428363571449742939}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f757d6d9f556f3c4e83b7b46ac8470e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: 43631163-35f2-4893-97d6-f57532ffd083

@@ -15,7 +15,7 @@ MonoBehaviour:
   recipeID: Apple
   recipeName: "\u042F\u0431\u043B\u043E\u043A\u043E"
   description: 
-  icon: {fileID: 21300000, guid: 5d94378b461e82649b3dc987913ff3c0, type: 3}
+  icon: {fileID: 21300000, guid: 3025b85a3d815f449964680be70b2ee3, type: 3}
   itemTier: 0
   category: 4
   requiredIngredients: []

@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 3533571918231823098}
   - component: {fileID: 75245216928182920}
   - component: {fileID: 3881066579090399758}
-  - component: {fileID: 8618542749947380734}
   - component: {fileID: 225522748621387590}
   - component: {fileID: 3234516972384000746}
+  - component: {fileID: 5216929476748758398}
   m_Layer: 3
   m_Name: Rock_01
   m_TagString: Untagged
@@ -109,22 +109,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: e9089b1db16b58f4282a94e020b9c0e8, type: 3}
---- !u!114 &8618542749947380734
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7676959656234188349}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67644d39576aeba40bf14433bc7a6793, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainResource: {fileID: 11400000, guid: 324c76c6efb044149bdeeb3439681a48, type: 2}
-  maxHealth: 1
-  rareResource: {fileID: 0}
-  rareDropChance: 0
 --- !u!135 &225522748621387590
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -162,7 +146,20 @@ MonoBehaviour:
   maxHealth: 1
   currentHealth: 1
   drops:
-  - item: {fileID: 11400000, guid: 324c76c6efb044149bdeeb3439681a48, type: 2}
+  - item: {fileID: 11400000, guid: ed2f7dec611400649b542c3e584dc68a, type: 2}
     dropChance: 1
     amountPerDamagePoint: 1
   selectionCircle: {fileID: 0}
+--- !u!114 &5216929476748758398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7676959656234188349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f757d6d9f556f3c4e83b7b46ac8470e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: 91fe5382-d125-4769-8e53-62180ce932f4

@@ -15,7 +15,7 @@ MonoBehaviour:
   recipeID: Wooden_Bow
   recipeName: "\u0414\u0435\u0440\u0435\u0432\u044F\u043D\u043D\u044B\u0439 \u041B\u0443\u043A"
   description: 
-  icon: {fileID: 21300000, guid: cdd71b194ee2ac844ac03da0bc913a16, type: 3}
+  icon: {fileID: 21300000, guid: 9559e32c3fe032f42ba74ec208aa4d9c, type: 3}
   itemTier: 1
   category: 2
   requiredIngredients:

@@ -146,6 +146,12 @@ public class BoarAI : MonoBehaviour
             }
         }
 
+        var worldID = GetComponent<WorldObjectID>();
+        if (worldID != null)
+        {
+            worldID.RegisterDestruction();
+        }
+
         Destroy(gameObject); 
     }
 }

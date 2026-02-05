@@ -153,8 +153,8 @@ GameObject:
   - component: {fileID: 913529030574393413}
   - component: {fileID: 1621156927477932790}
   - component: {fileID: 270176706785970842}
-  - component: {fileID: 6920054585992367582}
   - component: {fileID: 5837612128186476330}
+  - component: {fileID: 2614246851299172247}
   m_Layer: 3
   m_Name: Tree_02_LOD0
   m_TagString: Untagged
@@ -269,22 +269,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.6703212, y: 4.2180724, z: 1.6981602}
   m_Center: {x: -0.01845619, y: 2.092121, z: -0.0037555993}
---- !u!114 &6920054585992367582
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5432692330652072418}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 67644d39576aeba40bf14433bc7a6793, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainResource: {fileID: 11400000, guid: 864cef3376adaab4eb09993aa6b2f033, type: 2}
-  maxHealth: 20
-  rareResource: {fileID: 11400000, guid: 13098bcf795a4b2488ed8180a9fa9c01, type: 2}
-  rareDropChance: 50
 --- !u!114 &5837612128186476330
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -301,10 +285,23 @@ MonoBehaviour:
   maxHealth: 20
   currentHealth: 20
   drops:
-  - item: {fileID: 11400000, guid: 864cef3376adaab4eb09993aa6b2f033, type: 2}
+  - item: {fileID: 11400000, guid: 7fe81ebc0bd251047a95e4d25c47b104, type: 2}
     dropChance: 1
     amountPerDamagePoint: 1
-  - item: {fileID: 11400000, guid: 13098bcf795a4b2488ed8180a9fa9c01, type: 2}
-    dropChance: 0.2
+  - item: {fileID: 11400000, guid: 11bfe5b2e6f684c41a53ae4072dc84c2, type: 2}
+    dropChance: 0.5
     amountPerDamagePoint: 1
   selectionCircle: {fileID: 0}
+--- !u!114 &2614246851299172247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5432692330652072418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f757d6d9f556f3c4e83b7b46ac8470e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: 25619247-1874-4ab8-85e4-b747f4e0ad22

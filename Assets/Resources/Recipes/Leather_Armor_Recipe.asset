@@ -15,7 +15,7 @@ MonoBehaviour:
   recipeID: Leather_Armor
   recipeName: "\u041A\u043E\u0436\u0430\u043D\u0430\u044F \u0411\u0440\u043E\u043D\u044F"
   description: 
-  icon: {fileID: 21300000, guid: aa0baf2ca579da54da8a904bb97ee1c2, type: 3}
+  icon: {fileID: 21300000, guid: adb2b2d596bf9c64eb9d7743e4776962, type: 3}
   itemTier: 1
   category: 3
   requiredIngredients:

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class CraftingManager : MonoBehaviour
 {
@@ -23,41 +24,67 @@ public class CraftingManager : MonoBehaviour
         else Destroy(gameObject);
         
         discoveredRecipes.Clear();
-    }
-
-    void Start()
-    {
-        // 1. ВСЕГДА пробуем загрузить рецепты из папки Resources/Recipes
+        
+        // --- ПЕРЕНЕСЕНО ИЗ START В AWAKE ---
+        // Это гарантирует, что база рецептов готова ДО того, как SaveManager начнет загрузку
         var loaded = Resources.LoadAll<Recipe>("Recipes");
         
         if (loaded.Length > 0)
         {
-            int addedCount = 0;
+            allRecipes.Clear(); // Чистим, чтобы не дублировать при перезагрузке сцены
             foreach (var newRecipe in loaded)
             {
-                // Добавляем только если такого еще нет в списке
                 if (!allRecipes.Contains(newRecipe))
                 {
                     allRecipes.Add(newRecipe);
-                    addedCount++;
                 }
             }
-            Debug.Log($"[CraftingManager] Всего рецептов: {allRecipes.Count}. Из них новых загружено: {addedCount}");
+            // Debug.Log($"[CraftingManager] База загружена. Рецептов: {allRecipes.Count}");
         }
         else
         {
-            Debug.LogError("[CraftingManager] В папке Resources/Recipes пусто или папка не найдена!");
+            Debug.LogError("[CraftingManager] В папке Resources/Recipes пусто!");
         }
+    }
 
-        // 2. Открытие стартовых рецептов
-        foreach (var recipe in startingRecipes)
+    void Start()
+    {
+        // Стартовые рецепты открываем, только если список пуст (новая игра)
+        // Если это загрузка, SaveManager сам всё проставит
+        if (discoveredRecipes.Count == 0)
         {
-            DiscoverRecipe(recipe);
+            foreach (var recipe in startingRecipes)
+            {
+                DiscoverRecipe(recipe);
+            }
         }
     }
 
     // =========================================================
-    // ЛОГИКА ОТКРЫТИЯ (CheckUnlocks)
+    // ЛОГИКА СОХРАНЕНИЙ (НОВОЕ)
+    // =========================================================
+
+    // Метод для SaveManager: Восстановить рецепты по списку имен
+    public void RestoreUnlockedRecipes(List<string> savedIDs)
+    {
+        discoveredRecipes.Clear(); // Чистим перед загрузкой
+        
+        foreach (var id in savedIDs)
+        {
+            // Ищем рецепт в базе allRecipes, у которого outputResourceName совпадает с id
+            Recipe found = allRecipes.FirstOrDefault(r => r.outputResourceName == id);
+            
+            if (found != null && !discoveredRecipes.Contains(found))
+            {
+                discoveredRecipes.Add(found);
+                // Тут можно вызвать событие обновления UI, если нужно
+            }
+        }
+        Debug.Log($"[CraftingManager] Восстановлено изученных рецептов: {discoveredRecipes.Count}");
+    }
+
+    // =========================================================
+    // ЛОГИКА ОТКРЫТИЯ
     // =========================================================
 
     public void CheckUnlocks(ItemData item)
@@ -96,39 +123,23 @@ public class CraftingManager : MonoBehaviour
     }
 
     // =========================================================
-    // ЛОГИКА КРАФТА (TryMergeItems) - ОБНОВЛЕНА
+    // ЛОГИКА КРАФТА
     // =========================================================
 
     public Recipe TryMergeItems(List<ItemData> ingredientsInSlots)
     {
         ingredientsInSlots.RemoveAll(x => x == null);
-        
         if (ingredientsInSlots.Count == 0) return null;
-
-        // Собираем имена предметов в слотах для лога
-        string contents = "";
-        foreach(var item in ingredientsInSlots) contents += item.ItemName + ", ";
-        // Debug.Log($"[TryMerge] Проверяю слоты: {contents}");
 
         foreach (var recipe in allRecipes)
         {
-            // 1. ФИКС ЖАДНОСТИ: Если рецепт уже открыт - пропускаем его!
-            // Это позволит собирать сложные рецепты (Кирка), игнорируя простые (Топор/Цемент),
-            // части которых уже лежат на столе.
-            if (discoveredRecipes.Contains(recipe)) 
-            {
-                // Debug.Log($"[TryMerge] Пропускаем {recipe.recipeName}, так как он уже изучен.");
-                continue; 
-            }
+            if (discoveredRecipes.Contains(recipe)) continue; 
 
-            // 2. Проверка количества
             int requiredCount = 0;
             foreach (var ing in recipe.requiredIngredients) requiredCount += ing.amount;
 
-            // Если количество предметов на столе не совпадает с рецептом - сразу нет
             if (ingredientsInSlots.Count != requiredCount) continue;
 
-            // 3. Проверка состава
             List<string> tempRecipeIngredients = new List<string>();
             foreach (var ing in recipe.requiredIngredients)
             {
@@ -155,8 +166,6 @@ public class CraftingManager : MonoBehaviour
                 return recipe;
             }
         }
-
-        // Если дошли сюда - значит, ничего нового не собрали
         return null;
     }
 
@@ -164,8 +173,7 @@ public class CraftingManager : MonoBehaviour
     {
         foreach (var recipe in allRecipes)
         {
-            if (recipe.outputResourceName == resourceName)
-                return recipe;
+            if (recipe.outputResourceName == resourceName) return recipe;
         }
         return null;
     }

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b58fef9d338c3c84ea771db035b716dc, type: 3}
+  m_Name: Wooden_Bow
+  m_EditorClassIdentifier: 
+  ItemName: Wooden_Bow
+  DisplayName: "\u0414\u0435\u0440\u0435\u0432\u044F\u043D\u043D\u044B\u0439 \u041B\u0443\u043A"
+  Description: 
+  Icon: {fileID: 21300000, guid: 9559e32c3fe032f42ba74ec208aa4d9c, type: 3}
+  itemType: 2
+  toolType: 4
+  requiresAmmo: 1
+  IsStackable: 1
+  MaxStackSize: 99
+  minDamage: 4
+  maxDamage: 6
+  attackRange: 12
+  armorValue: 0
+  healAmount: 0

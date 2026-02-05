@@ -274,4 +274,11 @@ public class InventoryManager : MonoBehaviour
         }
         return 0;
     }
+
+    // --- МЕТОДЫ ДЛЯ СОХРАНЕНИЙ ---
+    public void ClearInventory()
+    {
+        inventorySlots.Clear(); // Очищаем список
+        UpdateInventoryUI();    // Обновляем картинку на экране
+    }
 }

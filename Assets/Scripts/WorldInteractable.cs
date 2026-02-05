@@ -94,6 +94,12 @@ public class WorldInteractable : MonoBehaviour
     {
         // В методе Die больше не выдаем ресурсы, так как мы выдали их 
         // последним ударом в TakeDamage (потому что damageToProcess учел остаток ХП).
+
+        var worldID = GetComponent<WorldObjectID>();
+        if (worldID != null)
+        {
+            worldID.RegisterDestruction();
+        }
         
         Destroy(gameObject);
     }

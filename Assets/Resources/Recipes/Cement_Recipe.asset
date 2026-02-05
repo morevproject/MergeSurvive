@@ -15,7 +15,7 @@ MonoBehaviour:
   recipeID: Cement
   recipeName: "\u0426\u0435\u043C\u0435\u043D\u0442"
   description: 
-  icon: {fileID: 21300000, guid: 8cee0338dbf73e741b2a594cbea00e82, type: 3}
+  icon: {fileID: 21300000, guid: e9ccf14253f43b54c98db08f8313ea0a, type: 3}
   itemTier: 2
   category: 0
   requiredIngredients:
