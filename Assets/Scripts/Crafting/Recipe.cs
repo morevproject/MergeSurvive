@@ -33,6 +33,7 @@ public class Recipe : ScriptableObject
     [Header("Settings & Progression")]
     public ItemTier itemTier;       // Уровень предмета (0, 1, 2...)
     public ItemCategory category;   // Категория (Ресурс, Инструмент...)
+    public int requiredWorkbenchTier = 1; // 1 = доступно сразу
     // -------------------------------------
 
     [Header("Merge Pattern")]

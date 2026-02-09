@@ -1,123 +1,124 @@
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
-using TMPro;
 
 public class SoulListUI : MonoBehaviour
 {
-    // ����� �� �������, ��� � ���������
-    public enum FilterTab 
-    { 
-        All = 0, 
-        Resources = 1, 
-        Tools = 2, 
-        Weapons = 3, 
-        Armor = 4, 
-        Food = 5, 
-        Ammo = 6
+    public static SoulListUI Instance;
+
+    [Header("Upgrade UI")]
+    public Button upgradeButton;     
+    public Text upgradeCostText;     
+    public Text currentGearsText;    
+    public GameObject maxLevelText;  
+
+    [Header("List Settings")]
+    public Transform contentContainer; 
+    public GameObject soulItemPrefab;  
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
     }
 
-    public GameObject soulSlotPrefab; 
-    public TMP_InputField searchInputField;
-
-    private FilterTab currentTab = FilterTab.All;
-    private string currentSearchText = "";
-    
-    private Dictionary<GameObject, Recipe> spawnedSlots = new Dictionary<GameObject, Recipe>();
-
-    void Start()
+    // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+    private void OnEnable()
     {
-        Invoke("RefreshList", 0.2f); 
-        if (searchInputField != null)
-            searchInputField.onValueChanged.AddListener(OnSearchTextChanged);
-    }
-
-    void OnEnable()
-    {
-        if (CraftingManager.Instance != null) RefreshList();
-        CraftingManager.OnRecipeDiscovered += HandleRecipeDiscovered;
-    }
-
-    void OnDisable()
-    {
-        CraftingManager.OnRecipeDiscovered -= HandleRecipeDiscovered;
-    }
-
-    private void HandleRecipeDiscovered(Recipe recipe) => RefreshList();
-
-    // --- ���������� ---
-
-    public void SetTab(int tabIndex)
-    {
-        currentTab = (FilterTab)tabIndex;
-        ApplyFilters();
-    }
-
-    public void OnSearchTextChanged(string text)
-    {
-        currentSearchText = text.ToLower();
-        ApplyFilters();
-    }
-
-    void ApplyFilters()
-    {
-        foreach (var kvp in spawnedSlots)
-        {
-            GameObject slotObj = kvp.Key;
-            Recipe recipe = kvp.Value;
-
-            if (slotObj == null) continue;
-
-            // 1. ����� �� �����
-            bool matchesSearch = string.IsNullOrEmpty(currentSearchText) || 
-                                 recipe.recipeName.ToLower().Contains(currentSearchText);
-
-            // 2. ���������
-            bool matchesTab = CheckCategory(recipe);
-
-            slotObj.SetActive(matchesSearch && matchesTab);
-        }
-    }
-
-    bool CheckCategory(Recipe recipe)
-    {
-        if (currentTab == FilterTab.All) return true;
-
-        switch (currentTab)
-        {
-            case FilterTab.Resources: return recipe.category == ItemCategory.Resource;
-            case FilterTab.Tools:     return recipe.category == ItemCategory.Tool;
-            case FilterTab.Weapons:   return recipe.category == ItemCategory.Weapon;
-            case FilterTab.Armor:     return recipe.category == ItemCategory.Armor;
-            case FilterTab.Food:      return recipe.category == ItemCategory.Food;
-            case FilterTab.Ammo:   return recipe.category == ItemCategory.Ammo;
-            default: return true;
-        }
-    }
-
-    public void RefreshList()
-    {
-        if (CraftingManager.Instance == null || soulSlotPrefab == null) return;
-
-        foreach (Transform child in transform) Destroy(child.gameObject);
-        spawnedSlots.Clear();
-
-        var discovered = CraftingManager.Instance.GetDiscoveredRecipes();
-
-        foreach (var recipe in discovered)
-        {
-            if (recipe == null) continue;
-
-            GameObject slot = Instantiate(soulSlotPrefab, transform);
-            spawnedSlots.Add(slot, recipe);
-
-            var slotUI = slot.GetComponent<ResourceSlotUI>();
-            if (slotUI != null)
-                slotUI.UpdateSlot(recipe.outputResourceName, recipe.icon, 1, null);
-
-            var soulItem = slot.GetComponent<SoulItemUI>();
-            if (soulItem != null) soulItem.Setup(recipe);
-        }
+        // 1. Подписываемся на событие открытия рецепта
+        CraftingManager.OnRecipeDiscovered += OnRecipeDiscoveredHandler;
         
-        ApplyFilters();
+        // 2. Обновляемся при включении (вдруг что-то открыли, пока мы спали)
+        RefreshUI();
+    }
+
+    private void OnDisable()
+    {
+        // Отписываемся, чтобы не было ошибок
+        CraftingManager.OnRecipeDiscovered -= OnRecipeDiscoveredHandler;
+    }
+
+    // Этот метод сработает АВТОМАТИЧЕСКИ, когда CraftingManager скажет "Открыто!"
+    private void OnRecipeDiscoveredHandler(Recipe recipe)
+    {
+        // Debug.Log($"[UI] Ура! Новый рецепт {recipe.recipeName}, обновляю список!");
+        RefreshUI();
+    }
+    // ---------------------------------
+
+    private void Start()
+    {
+        if (upgradeButton != null)
+            upgradeButton.onClick.AddListener(OnUpgradeClicked);
+
+        // На старте тоже обновляем
+        RefreshUI();
+    }
+    
+    public void RefreshUI()
+    {
+        UpdateUpgradeInfo();
+        RefreshSoulList();
+    }
+
+    private void UpdateUpgradeInfo()
+    {
+        if (PlayerStats.Instance == null) return;
+
+        int currentGears = PlayerStats.Instance.Gears;
+        int nextCost = PlayerStats.Instance.GetNextUpgradeCost();
+
+        if (currentGearsText != null) 
+            currentGearsText.text = $"{currentGears}"; 
+
+        if (nextCost == -1) 
+        {
+            if (upgradeButton != null) upgradeButton.gameObject.SetActive(false);
+            if (maxLevelText != null) maxLevelText.SetActive(true);
+        }
+        else
+        {
+            if (upgradeButton != null)
+            {
+                upgradeButton.gameObject.SetActive(true);
+                upgradeButton.interactable = (currentGears >= nextCost);
+            }
+            if (maxLevelText != null) maxLevelText.SetActive(false);
+            
+            if (upgradeCostText != null) 
+                upgradeCostText.text = $"Улучшить Верстак за {nextCost}";
+        }
+    }
+
+    public void OnUpgradeClicked()
+    {
+        if (PlayerStats.Instance.TryUpgradeWorkbench())
+        {
+            RefreshUI(); 
+        }
+    }
+
+    private void RefreshSoulList()
+    {
+        if (contentContainer == null || soulItemPrefab == null) return;
+
+        // Удаляем старые иконки
+        foreach (Transform child in contentContainer) Destroy(child.gameObject);
+
+        if (CraftingManager.Instance == null) return;
+
+        var recipes = CraftingManager.Instance.GetDiscoveredRecipes();
+        int playerTier = (PlayerStats.Instance != null) ? PlayerStats.Instance.WorkbenchTier : 1;
+
+        foreach (var recipe in recipes)
+        {
+            GameObject obj = Instantiate(soulItemPrefab, contentContainer);
+            SoulItemUI ui = obj.GetComponent<SoulItemUI>();
+            
+            if (ui != null)
+            {
+                bool isLocked = recipe.requiredWorkbenchTier > playerTier;
+                ui.Setup(recipe, isLocked); 
+            }
+        }
     }
 }

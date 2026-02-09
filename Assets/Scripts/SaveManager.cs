@@ -46,14 +46,16 @@ public class SaveManager : MonoBehaviour
         SaveGame();
         Debug.Log("[SaveManager] Игра закрывается. Прогресс сохранен.");
     }
-    // --------------------------------
 
     public void SaveGame()
     {
-        // 1. Сохраняем ХП
+        // 1. Сохраняем Статы Игрока (ХП + Шестерни + Тир)
         if (PlayerStats.Instance != null)
         {
             currentSave.currentHealth = PlayerStats.Instance.currentHealth;
+            // --- НОВОЕ: Сохраняем прогресс верстака ---
+            currentSave.gearsCount = PlayerStats.Instance.Gears;
+            currentSave.workbenchTier = PlayerStats.Instance.WorkbenchTier;
         }
         
         // 2. Сохраняем Инвентарь
@@ -75,8 +77,6 @@ public class SaveManager : MonoBehaviour
         {
             foreach (var recipe in CraftingManager.Instance.GetDiscoveredRecipes())
             {
-                // Сохраняем уникальное имя ресурса, который получается из рецепта
-                // (Это надежнее, чем имя файла)
                 if (!string.IsNullOrEmpty(recipe.outputResourceName))
                 {
                     currentSave.unlockedRecipeIDs.Add(recipe.outputResourceName);
@@ -87,7 +87,7 @@ public class SaveManager : MonoBehaviour
         // Запись на диск
         string json = JsonUtility.ToJson(currentSave, true);
         File.WriteAllText(savePath, json);
-        Debug.Log($"Game Saved!");
+        Debug.Log($"Game Saved! Gears: {currentSave.gearsCount}, Tier: {currentSave.workbenchTier}");
     }
 
     private void LoadFileOnly()
@@ -111,10 +111,15 @@ public class SaveManager : MonoBehaviour
 
     public void ApplyLoadData()
     {
-        // 1. ХП
+        // 1. Загружаем Статы (ХП + Шестерни + Тир)
         if (PlayerStats.Instance != null)
         {
-            PlayerStats.Instance.currentHealth = currentSave.currentHealth;
+            // Используем метод LoadProgress, который мы добавили в PlayerStats
+            PlayerStats.Instance.LoadProgress(
+                currentSave.currentHealth, 
+                currentSave.gearsCount, 
+                currentSave.workbenchTier
+            );
         }
 
         // 2. Инвентарь
@@ -134,7 +139,6 @@ public class SaveManager : MonoBehaviour
         // 3. Рецепты (Души)
         if (CraftingManager.Instance != null)
         {
-            // Передаем список строк в менеджер крафта, пусть сам ищет и открывает
             CraftingManager.Instance.RestoreUnlockedRecipes(currentSave.unlockedRecipeIDs);
         }
     }
@@ -142,8 +146,14 @@ public class SaveManager : MonoBehaviour
     public void RespawnWorldKeepInventory()
     {
         SaveGame();
+        
+        // Очищаем список уничтоженных объектов (деревья вырастут заново)
         currentSave.destroyedObjectIDs.Clear();
         
+        // При респавне логично восстановить здоровье в сохранении до максимума,
+        // чтобы при загрузке сцены мы не умерли мгновенно.
+        if (currentSave.currentHealth <= 0) currentSave.currentHealth = 100;
+
         string json = JsonUtility.ToJson(currentSave, true);
         File.WriteAllText(savePath, json);
 
@@ -172,8 +182,6 @@ public class SaveManager : MonoBehaviour
         if (!currentSave.destroyedObjectIDs.Contains(id))
         {
             currentSave.destroyedObjectIDs.Add(id);
-            // Можно сразу сохранять, если боишься вылетов, 
-            // но обычно хватает автосейва при выходе.
         }
     }
 }

@@ -21,8 +21,8 @@ MonoBehaviour:
   requiresAmmo: 1
   IsStackable: 1
   MaxStackSize: 99
-  minDamage: 4
-  maxDamage: 6
+  minDamage: 10
+  maxDamage: 15
   attackRange: 12
   armorValue: 0
   healAmount: 0

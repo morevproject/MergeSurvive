@@ -22,13 +22,18 @@ public class PlayerCombatController : MonoBehaviour
     void Start()
     {
         if (attackButtonObject != null) attackButtonObject.SetActive(false);
-        // ВАЖНО: Подписываемся на новый метод StartAttackSequence
         if (attackButton != null) attackButton.onClick.AddListener(StartAttackSequence);
     }
 
     void Update()
     {
         FindNearestEnemy();
+    }
+
+    // --- ДОБАВЛЕНО: Прячем кнопку, если скрипт отключает CombatManager ---
+    void OnDisable()
+    {
+        if (attackButtonObject != null) attackButtonObject.SetActive(false);
     }
 
     void FindNearestEnemy()
@@ -64,12 +69,10 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
-    // МЕТОД 1: Вызывается КНОПКОЙ (Запускает только анимацию)
     void StartAttackSequence()
     {
         if (currentTarget == null) return;
         
-        // Поворачиваемся к врагу
         transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
 
         if (playerAnim != null) 
@@ -78,20 +81,21 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
-    // МЕТОД 2: Вызывается СОБЫТИЕМ ИЗ АНИМАЦИИ (Наносит урон / пускает стрелу)
-    // Именно его ищет скрипт CombatEvents!
     public void ExecuteAttackLogic()
     {
+        // --- ВАЖНЫЙ ФИКС ---
+        // Игнорируем ивент анимации, если скрипт выключен (например, идет бой с боссом)
+        if (!this.enabled) return;
+        // -------------------
+
         if (currentTarget == null || PlayerProfileUI.Instance == null) return;
         
-        // Поворачиваемся еще раз (для точности в момент выстрела)
         transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
 
         ItemData weapon = PlayerProfileUI.Instance.weaponSlot.currentItem;
         ItemData ammo = PlayerProfileUI.Instance.ammoSlot.currentItem;
         int damage = PlayerStats.Instance.TotalDamage;
 
-        // --- ДАЛЬНИЙ БОЙ ---
         if (weapon != null && weapon.requiresAmmo)
         {
             if (ammo == null || InventoryManager.Instance.GetItemCount(ammo) <= 0)
@@ -110,7 +114,6 @@ public class PlayerCombatController : MonoBehaviour
                 projectile.Setup(damage, targetSpot);
             }
         }
-        // --- БЛИЖНИЙ БОЙ ---
         else
         {
             BoarAI enemyScript = currentTarget.GetComponentInParent<BoarAI>();

@@ -105,6 +105,16 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
         currentItem = item;
         UpdateVisual();
         if (PlayerProfileUI.Instance != null) PlayerProfileUI.Instance.OnEquipmentChanged();
+
+        // Если это слот Оружия — передаем статы предмета в FighterStats
+        if (slotType == EquipmentSlotType.Weapon)
+        {
+            var playerStats = GameObject.FindGameObjectWithTag("Player").GetComponent<FighterStats>();
+            if (playerStats != null)
+            {
+                playerStats.UpdateWeaponStats(item.minDamage, item.maxDamage, item.attackRange);
+            }
+        }
     }
 
     public void Unequip()
@@ -112,6 +122,16 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
         currentItem = null;
         UpdateVisual();
         if (PlayerProfileUI.Instance != null) PlayerProfileUI.Instance.OnEquipmentChanged();
+
+        // Если сняли предмет из слота Оружия — возвращаем урон к кулакам
+        if (slotType == EquipmentSlotType.Weapon)
+        {
+            var playerStats = GameObject.FindGameObjectWithTag("Player").GetComponent<FighterStats>();
+            if (playerStats != null)
+            {
+                playerStats.UpdateWeaponStats(0, 0, 0); // 0 сбросит на базовый урон
+            }
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)

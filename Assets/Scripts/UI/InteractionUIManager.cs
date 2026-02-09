@@ -54,12 +54,18 @@ public class InteractionUIManager : MonoBehaviour
         var playerAnim = FindObjectOfType<PlayerAnimation>();
 
         // 1. ОПРЕДЕЛЯЕМ, ЧТО НУЖНО
-        string neededToolType = "Axe"; 
+        string neededToolType = "Axe"; // По умолчанию топор (дерево)
         string targetName = currentInteractable.gameObject.name;
         
+        // Проверка на КИРКУ
         if (targetName.Contains("Rock") || targetName.Contains("Stone") || targetName.Contains("Ore"))
         {
             neededToolType = "Pickaxe";
+        }
+        // --- ДОБАВЛЕНО: Проверка на ЛОПАТУ ---
+        else if (targetName.Contains("Dirt") || targetName.Contains("Clay") || targetName.Contains("Mound") || targetName.Contains("Земл"))
+        {
+            neededToolType = "Shovel";
         }
 
         // 2. ПРОВЕРЯЕМ, ЕСТЬ ЛИ ЭТО У НАС (Ищем везде!)
@@ -67,13 +73,12 @@ public class InteractionUIManager : MonoBehaviour
         
         if (PlayerProfileUI.Instance != null)
         {
-            // А. Проверяем Слот ОРУЖИЯ (вдруг мы держим топор как оружие)
+            // А. Проверяем Слот ОРУЖИЯ (вдруг мы держим инструмент как оружие)
             if (CheckSlotForTool(PlayerProfileUI.Instance.weaponSlot, neededToolType))
             {
                 hasCorrectTool = true;
             }
-            // Б. Проверяем СЛОТЫ ИНСТРУМЕНТОВ (если они есть)
-            // ВАЖНО: Убедись, что в PlayerProfileUI эти переменные называются именно так!
+            // Б. Проверяем СЛОТЫ ИНСТРУМЕНТОВ
             else if (neededToolType == "Axe" && CheckSlotForTool(PlayerProfileUI.Instance.axeSlot, "Axe"))
             {
                 hasCorrectTool = true;
@@ -82,11 +87,24 @@ public class InteractionUIManager : MonoBehaviour
             {
                 hasCorrectTool = true;
             }
+            // --- ДОБАВЛЕНО: Проверка слота ЛОПАТЫ ---
+            else if (neededToolType == "Shovel" && CheckSlotForTool(PlayerProfileUI.Instance.shovelSlot, "Shovel"))
+            {
+                hasCorrectTool = true;
+            }
+        }
+        // Если профиля UI нет (тест), считаем, что инструмент есть
+        else 
+        {
+            hasCorrectTool = true; 
         }
 
         // 3. ВИЗУАЛИЗАЦИЯ
-        if (playerVisuals != null && hasCorrectTool)
+        // Показываем инструмент, только если определили правильный тип
+        if (playerVisuals != null)
         {
+            // Если инструмента нет в слоте, можно либо не показывать ничего, 
+            // либо показывать дефолтную (я оставил показ, чтобы видно было анимацию)
             playerVisuals.ShowToolTemporarily(neededToolType, 1.5f);
         }
 

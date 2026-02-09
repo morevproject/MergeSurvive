@@ -387,6 +387,7 @@ MonoBehaviour:
   swordModel: {fileID: 0}
   axeModel: {fileID: 6119494844311833336}
   pickaxeModel: {fileID: 7058695570700879874}
+  shovelModel: {fileID: 0}
   bowModel: {fileID: 0}
 --- !u!1 &1223265315092600406
 GameObject:

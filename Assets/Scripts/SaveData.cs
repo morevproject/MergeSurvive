@@ -9,6 +9,9 @@ public class SaveData
     
     // Инвентарь
     public List<InventorySaveData> inventory = new List<InventorySaveData>();
+
+    public int gearsCount = 0;       // Валюта (Шестерёнки)
+    public int workbenchTier = 1;    // Уровень верстака (по умолчанию 1)
     
     // --- ПРОГРЕСС (Новое!) ---
     // Список имен предметов (outputResourceName), рецепты которых мы изучили

@@ -1,68 +1,90 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using System.Linq; // Нужно для умного поиска
+using System.Linq;
 
+// Убрали интерфейсы Drag, оставили только Click
 public class SoulItemUI : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI")]
     public Image icon; 
     public Text soulNameText;
-    public GameObject lockedOverlay;
+    public GameObject lockedOverlay; 
     
     [Header("Data")]
-    public ItemData itemData; // Сюда мы пытаемся загрузить данные
-    private Recipe myRecipe;
+    public ItemData itemData; 
+    private Recipe myRecipe; 
+
+    private bool isLocked = false;
+    private int requiredTier = 1;
+
+    // Ссылка на скрипт перетаскивания (который уже есть у тебя)
+    private UIDraggableItem dragComponent;
+
+    private void Awake()
+    {
+        // Пытаемся найти компонент перетаскивания на этом же объекте
+        dragComponent = GetComponent<UIDraggableItem>();
+    }
     
-    public void Setup(Recipe recipe)
+    public void Setup(Recipe recipe, bool locked)
     {
         myRecipe = recipe;
+        requiredTier = recipe.requiredWorkbenchTier; 
         
-        // 1. Настраиваем UI
+        // 1. Настройка UI
         if (icon == null) icon = GetComponent<Image>();
         if (icon != null && recipe.icon != null) icon.sprite = recipe.icon;
         
         if (soulNameText != null) soulNameText.text = recipe.recipeName;
 
-        bool isDiscovered = CraftingManager.Instance.GetDiscoveredRecipes().Contains(recipe);
-        if (lockedOverlay != null) lockedOverlay.SetActive(!isDiscovered);
+        // 2. Поиск ItemData (для слота)
+        FindItemData(recipe);
 
-        // 2. ЗАГРУЗКА ITEM DATA (Улучшенная версия)
-        if (!string.IsNullOrEmpty(recipe.outputResourceName))
+        // 3. Установка замка
+        SetLocked(locked);
+    }
+
+    private void FindItemData(Recipe recipe)
+    {
+        if (string.IsNullOrEmpty(recipe.outputResourceName)) return;
+
+        // Попытка А
+        itemData = Resources.Load<ItemData>("Items/" + recipe.outputResourceName);
+        // Попытка Б
+        if (itemData == null) itemData = Resources.Load<ItemData>(recipe.outputResourceName);
+        // Попытка В (LINQ)
+        if (itemData == null)
         {
-            // Попытка А: Прямой поиск в папке Resources/Items
-            itemData = Resources.Load<ItemData>("Items/" + recipe.outputResourceName);
-            
-            // Попытка Б: Поиск просто в корне Resources
-            if (itemData == null)
-                itemData = Resources.Load<ItemData>(recipe.outputResourceName);
+            var allItems = Resources.LoadAll<ItemData>(""); 
+            itemData = allItems.FirstOrDefault(x => x.name == recipe.outputResourceName || x.ItemName == recipe.outputResourceName);
+        }
+    }
 
-            // Попытка В: УМНЫЙ ПОИСК (Сканируем всё)
-            if (itemData == null)
-            {
-                Debug.LogWarning($"[SoulItemUI] Не нашел '{recipe.outputResourceName}' по прямым путям. Ищу везде...");
-                var allItems = Resources.LoadAll<ItemData>(""); // Грузим вообще всё
-                
-                // Ищем предмет, у которого имя файла ИЛИ поле ItemName совпадает с рецептом
-                itemData = allItems.FirstOrDefault(x => x.name == recipe.outputResourceName || x.ItemName == recipe.outputResourceName);
-            }
+    public void SetLocked(bool locked)
+    {
+        isLocked = locked;
+        
+        // Визуал замка
+        if (lockedOverlay != null) lockedOverlay.SetActive(locked);
+        if (icon != null) icon.color = locked ? Color.gray : Color.white;
 
-            // ИТОГ
-            if (itemData == null)
-            {
-                Debug.LogError($"[SoulItemUI] КРИТИЧЕСКАЯ ОШИБКА: Не могу найти ItemData для '{recipe.outputResourceName}'! \n" +
-                               "1. Убедитесь, что файл предмета лежит в папке Resources (или в любой подпапке внутри Resources).\n" +
-                               "2. Убедитесь, что имя файла совпадает с Output Resource Name в рецепте.");
-            }
-            else
-            {
-                // Debug.Log($"[SoulItemUI] Успешно загрузил данные для: {itemData.ItemName}");
-            }
+        // --- ГЛАВНОЕ ИЗМЕНЕНИЕ ---
+        // Если заперто — отключаем компонент перетаскивания!
+        if (dragComponent != null)
+        {
+            dragComponent.enabled = !locked;
         }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (isLocked)
+        {
+            Debug.Log($"<color=red>Рецепт заблокирован! Нужен верстак {requiredTier} уровня.</color>");
+            return;
+        }
+
         if (CraftingPanel.Instance != null)
         {
             CraftingPanel.Instance.SelectRecipe(myRecipe);
