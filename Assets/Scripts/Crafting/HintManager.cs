@@ -1,0 +1,274 @@
+﻿using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
+public class HintManager : MonoBehaviour
+{
+    public static HintManager Instance;
+
+    [Header("Settings")]
+    public ItemData hintItem; // Используем только для иконки
+
+    [Header("Visuals")]
+    public GameObject flyingIconPrefab; 
+    public Transform animationParent; // Canvas
+    public Transform soulsContentParent; 
+
+    [Header("UI Main")]
+    public Button hintButton;        
+    public Text hintCountText;       
+    public CanvasGroup craftingCanvasGroup; 
+
+    [Header("UI Shop")]
+    public GameObject shopPanel;     
+    public Button buy1Btn; 
+    public Button buy5Btn; 
+    public Button buy10Btn;
+    public Button closeShopBtn;
+
+    [Header("Crafting Slots")]
+    public List<CraftingSlot> craftingSlots; 
+
+    private bool isAnimating = false;
+
+    void Awake()
+    {
+        Instance = this;
+        
+        if (hintButton != null) hintButton.onClick.AddListener(OnHintClicked);
+        if (closeShopBtn != null) closeShopBtn.onClick.AddListener(CloseShop);
+        
+        if (buy1Btn != null) buy1Btn.onClick.AddListener(() => BuyPack(1));
+        if (buy5Btn != null) buy5Btn.onClick.AddListener(() => BuyPack(10));
+        if (buy10Btn != null) buy10Btn.onClick.AddListener(() => BuyPack(100));
+
+        if (shopPanel != null) shopPanel.SetActive(false);
+    }
+
+    void Start()
+    {
+        UpdateUI();
+    }
+
+    // Подписываемся на обновление статов, чтобы текст обновлялся сам
+    void OnEnable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated += UpdateUI; }
+    void OnDisable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; }
+
+    void Update()
+    {
+        // На всякий случай дублируем в Update, если событие не дошло
+        UpdateUI();
+    }
+
+    public void UpdateUI()
+    {
+        if (hintCountText == null || PlayerStats.Instance == null) return;
+        // Берем количество из PlayerStats, а не инвентаря
+        int count = PlayerStats.Instance.HintBulbs;
+        hintCountText.text = count.ToString();
+    }
+
+    public void OnHintClicked()
+    {
+        if (isAnimating) return; 
+        
+        // Проверяем валюту в PlayerStats
+        if (PlayerStats.Instance != null && PlayerStats.Instance.HintBulbs > 0)
+        {
+            TryUseHint();
+        }
+        else
+        {
+            OpenShop();
+        }
+    }
+
+    private void TryUseHint()
+    {
+        Recipe recipe = FindKnownBasedRecipe();
+        if (recipe != null) StartCoroutine(AnimateHintRoutine(recipe));
+        else Debug.Log("Нет доступных комбинаций!");
+    }
+
+    private Recipe FindKnownBasedRecipe()
+    {
+        var all = CraftingManager.Instance.allRecipes;
+        var discoveredRecipes = CraftingManager.Instance.GetDiscoveredRecipes();
+        List<Recipe> candidates = new List<Recipe>();
+
+        foreach (var r in all)
+        {
+            if (discoveredRecipes.Contains(r)) continue; 
+            if (r.isBaseResource) continue;  
+            if (AreIngredientsUnlocked(r, discoveredRecipes)) candidates.Add(r);
+        }
+
+        if (candidates.Count > 0) return candidates[Random.Range(0, candidates.Count)];
+        return null;
+    }
+
+    private bool AreIngredientsUnlocked(Recipe r, List<Recipe> knownRecipes)
+    {
+        foreach (var ing in r.requiredIngredients)
+        {
+            Recipe sourceRecipe = CraftingManager.Instance.GetRecipeByOutputName(ing.resourceName);
+            if (sourceRecipe != null)
+            {
+                if (!knownRecipes.Contains(sourceRecipe)) return false;
+            }
+            else return false; 
+        }
+        return true;
+    }
+
+    IEnumerator AnimateHintRoutine(Recipe recipe)
+    {
+        isAnimating = true;
+        if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = false;
+
+        // 1. Списываем лампочку (валюту) и СОХРАНЯЕМСЯ
+        if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
+        SaveProgress();
+
+        ClearCraftingSlots();
+        yield return new WaitForSeconds(0.1f);
+
+        List<CraftingSlot> availableSlots = new List<CraftingSlot>();
+        foreach(var s in craftingSlots) {
+             if(s.GetResourceInSlot() == null) availableSlots.Add(s);
+        }
+
+        foreach (var ing in recipe.requiredIngredients)
+        {
+            for (int i = 0; i < ing.amount; i++)
+            {
+                if (availableSlots.Count > 0)
+                {
+                    CraftingSlot targetSlot = availableSlots[0];
+                    availableSlots.RemoveAt(0); 
+
+                    Sprite iconToFly = null;
+                    ItemData finalData = null;
+
+                    Recipe sourceRecipe = CraftingManager.Instance.GetRecipeByOutputName(ing.resourceName);
+                    if (sourceRecipe != null) iconToFly = sourceRecipe.icon;
+
+                    if (iconToFly == null)
+                    {
+                        ItemData resItem = Resources.Load<ItemData>("Items/" + ing.resourceName);
+                        if (resItem == null) resItem = Resources.Load<ItemData>(ing.resourceName);
+                        if (resItem != null) { iconToFly = resItem.Icon; finalData = resItem; }
+                    }
+
+                    // Используем hintItem.Icon как заглушку, если картинка не найдена
+                    if (iconToFly == null && hintItem != null) iconToFly = hintItem.Icon; 
+
+                    // Ищем позицию души на верстаке
+                    Vector3 startPos = GetSoulPositionOnWorkbench(ing.resourceName);
+
+                    if (iconToFly != null)
+                    {
+                        yield return StartCoroutine(FlyIconToSlot(iconToFly, startPos, targetSlot, 0.6f));
+                        
+                        if (finalData == null) finalData = Resources.Load<ItemData>("Items/" + ing.resourceName);
+                        if (finalData == null) finalData = InventoryManager.Instance.GetItemDataByName(ing.resourceName);
+
+                        if (finalData != null) targetSlot.SetItem(finalData);
+                    }
+                }
+                else
+                {
+                    Debug.LogError("[HintManager] Не хватает свободных слотов для анимации!");
+                }
+            }
+        }
+
+        yield return new WaitForSeconds(0.2f);
+        CraftingManager.Instance.DiscoverRecipe(recipe); 
+        SaveProgress(); // Сохраняем открытие рецепта
+
+        if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
+        isAnimating = false;
+    }
+
+    private Vector3 GetSoulPositionOnWorkbench(string resourceName)
+    {
+        Vector3 fallbackPos = hintButton.transform.position;
+        if (soulsContentParent == null) return fallbackPos;
+
+        foreach (Transform child in soulsContentParent)
+        {
+            SoulItemUI soulUI = child.GetComponent<SoulItemUI>();
+            
+            if (soulUI != null)
+            {
+                if (soulUI.itemData != null && soulUI.itemData.ItemName == resourceName)
+                    return child.position;
+                
+                if (soulUI.soulNameText != null && soulUI.soulNameText.text == resourceName)
+                     return child.position;
+            }
+        }
+        return fallbackPos; 
+    }
+
+    IEnumerator FlyIconToSlot(Sprite sprite, Vector3 startWorldPos, CraftingSlot targetSlot, float duration)
+    {
+        if (flyingIconPrefab == null || animationParent == null) yield break;
+
+        GameObject iconObj = Instantiate(flyingIconPrefab, animationParent);
+        iconObj.transform.localScale = Vector3.one; 
+        iconObj.transform.position = startWorldPos; 
+        
+        Vector3 localPos = iconObj.transform.localPosition;
+        localPos.z = 0;
+        iconObj.transform.localPosition = localPos;
+
+        Image img = iconObj.GetComponent<Image>();
+        if (img != null) img.sprite = sprite;
+
+        float elapsed = 0f;
+        Vector3 endPos = targetSlot.transform.position;
+        endPos.z = 0; 
+        Vector3 realStartPos = iconObj.transform.position;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            t = Mathf.SmoothStep(0f, 1f, t); 
+            if (iconObj != null) iconObj.transform.position = Vector3.Lerp(realStartPos, endPos, t);
+            yield return null;
+        }
+        if (iconObj != null) Destroy(iconObj);
+    }
+
+    private void ClearCraftingSlots()
+    {
+        if (craftingSlots == null) return;
+        foreach (var slot in craftingSlots) {
+            if (slot.GetResourceInSlot() != null) {
+                InventoryManager.Instance.AddItem(slot.GetResourceInSlot(), 1); 
+                slot.ClearSlot(); 
+            }
+        }
+    }
+
+    private void OpenShop() { if (shopPanel != null) shopPanel.SetActive(true); }
+    public void CloseShop() { if (shopPanel != null) shopPanel.SetActive(false); }
+
+    private void BuyPack(int amount)
+    {
+        // Начисляем валюту напрямую
+        if (PlayerStats.Instance != null) PlayerStats.Instance.AddBulbs(amount);
+        SaveProgress();
+        CloseShop();
+    }
+
+    private void SaveProgress()
+    {
+        if (SaveManager.Instance != null) SaveManager.Instance.SaveGame();
+    }
+}

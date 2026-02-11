@@ -49,13 +49,14 @@ public class SaveManager : MonoBehaviour
 
     public void SaveGame()
     {
-        // 1. Сохраняем Статы Игрока (ХП + Шестерни + Тир)
+        // 1. Сохраняем Статы Игрока (ХП + Шестерни + Тир + ЛАМПОЧКИ)
         if (PlayerStats.Instance != null)
         {
             currentSave.currentHealth = PlayerStats.Instance.currentHealth;
-            // --- НОВОЕ: Сохраняем прогресс верстака ---
             currentSave.gearsCount = PlayerStats.Instance.Gears;
             currentSave.workbenchTier = PlayerStats.Instance.WorkbenchTier;
+            // Сохраняем валюту напрямую из статов
+            currentSave.hintBulbsCount = PlayerStats.Instance.HintBulbs;
         }
         
         // 2. Сохраняем Инвентарь
@@ -87,7 +88,7 @@ public class SaveManager : MonoBehaviour
         // Запись на диск
         string json = JsonUtility.ToJson(currentSave, true);
         File.WriteAllText(savePath, json);
-        Debug.Log($"Game Saved! Gears: {currentSave.gearsCount}, Tier: {currentSave.workbenchTier}");
+        Debug.Log($"Game Saved! Gears: {currentSave.gearsCount}, Bulbs: {currentSave.hintBulbsCount}");
     }
 
     private void LoadFileOnly()
@@ -111,14 +112,15 @@ public class SaveManager : MonoBehaviour
 
     public void ApplyLoadData()
     {
-        // 1. Загружаем Статы (ХП + Шестерни + Тир)
+        // 1. Загружаем Статы (ХП + Шестерни + Тир + Лампочки)
         if (PlayerStats.Instance != null)
         {
-            // Используем метод LoadProgress, который мы добавили в PlayerStats
+            // Передаем лампочки 4-м параметром
             PlayerStats.Instance.LoadProgress(
                 currentSave.currentHealth, 
                 currentSave.gearsCount, 
-                currentSave.workbenchTier
+                currentSave.workbenchTier,
+                currentSave.hintBulbsCount 
             );
         }
 
@@ -147,11 +149,7 @@ public class SaveManager : MonoBehaviour
     {
         SaveGame();
         
-        // Очищаем список уничтоженных объектов (деревья вырастут заново)
         currentSave.destroyedObjectIDs.Clear();
-        
-        // При респавне логично восстановить здоровье в сохранении до максимума,
-        // чтобы при загрузке сцены мы не умерли мгновенно.
         if (currentSave.currentHealth <= 0) currentSave.currentHealth = 100;
 
         string json = JsonUtility.ToJson(currentSave, true);
@@ -170,13 +168,11 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    // Проверка: уничтожен ли объект с таким ID?
     public bool IsObjectDestroyed(string id)
     {
         return currentSave.destroyedObjectIDs.Contains(id);
     }
 
-    // Действие: запомнить, что объект уничтожен
     public void MarkAsDestroyed(string id)
     {
         if (!currentSave.destroyedObjectIDs.Contains(id))

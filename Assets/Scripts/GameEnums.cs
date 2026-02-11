@@ -29,5 +29,5 @@ public enum ItemCategory
     Weapon = 2,   // Оружие (Меч, Лук)
     Armor = 3,     // Броня
     Food = 4,      // Еда
-    Ammo = 5      // Еда
+    Ammo = 5      // Боеприпасы
 }

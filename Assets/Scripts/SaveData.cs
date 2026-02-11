@@ -12,6 +12,7 @@ public class SaveData
 
     public int gearsCount = 0;       // Валюта (Шестерёнки)
     public int workbenchTier = 1;    // Уровень верстака (по умолчанию 1)
+    public int hintBulbsCount = 0;   // Лампочки
     
     // --- ПРОГРЕСС (Новое!) ---
     // Список имен предметов (outputResourceName), рецепты которых мы изучили
@@ -23,6 +24,7 @@ public class SaveData
     public SaveData()
     {
         currentHealth = 100;
+        hintBulbsCount = 0;
     }
 }
 

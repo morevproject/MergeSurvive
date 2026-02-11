@@ -13,9 +13,10 @@ public class PlayerStats : MonoBehaviour
     public int maxHealth = 100;
     public int currentHealth;
 
-    // --- Прогрессия Верстака ---
+    // --- Прогрессия Верстака & Валюта ---
     public int Gears { get; private set; }
     public int WorkbenchTier { get; private set; } = 1;
+    public int HintBulbs { get; private set; } = 0; // <--- НОВОЕ: Лампочки
 
     // Цена апгрейда: с 1 на 2 ур = 1 шестеренка, с 2 на 3 = 3 шестеренки
     public int[] upgradeCosts = new int[] { 1, 3, 5 }; 
@@ -44,15 +45,33 @@ public class PlayerStats : MonoBehaviour
         UpdateHealthUI();
     }
 
-    // --- МЕТОДЫ ДЛЯ ВЕРСТАКА ---
+    // --- МЕТОДЫ ДЛЯ ЛАМПОЧЕК (НОВЫЕ) ---
+    public void AddBulbs(int amount)
+    {
+        HintBulbs += amount;
+        Debug.Log($"[PlayerStats] +{amount} Лампочек. Всего: {HintBulbs}");
+        OnStatsUpdated?.Invoke(); // Обновляем UI
+    }
 
+    public bool SpendBulbs(int amount)
+    {
+        if (HintBulbs >= amount)
+        {
+            HintBulbs -= amount;
+            Debug.Log($"[PlayerStats] Потрачено {amount} Лампочек. Осталось: {HintBulbs}");
+            OnStatsUpdated?.Invoke();
+            return true;
+        }
+        return false;
+    }
+    // -----------------------------------
+
+    // --- МЕТОДЫ ДЛЯ ВЕРСТАКА ---
     public void AddGears(int amount)
     {
         Gears += amount;
         Debug.Log($"[PlayerStats] +{amount} Шестерёнок. Всего: {Gears}");
         
-        // --- ИСПРАВЛЕНИЕ ТУТ ---
-        // Обновляем UI в новом скрипте SoulListUI
         if (SoulListUI.Instance != null) 
         {
             SoulListUI.Instance.RefreshUI();
@@ -85,13 +104,16 @@ public class PlayerStats : MonoBehaviour
         return upgradeCosts[index];
     }
 
-    public void LoadProgress(int savedHp, int savedGears, int savedTier)
+    // Обновленный метод загрузки (добавили bulbs)
+    public void LoadProgress(int savedHp, int savedGears, int savedTier, int savedBulbs)
     {
         currentHealth = savedHp;
         Gears = savedGears;
         WorkbenchTier = (savedTier > 0) ? savedTier : 1;
+        HintBulbs = savedBulbs; // Загружаем лампочки
         
         UpdateHealthUI();
+        OnStatsUpdated?.Invoke();
     }
     // ----------------------------------
 
@@ -100,8 +122,6 @@ public class PlayerStats : MonoBehaviour
         float damageReduction = damage * (TotalArmor / 100f);
         int finalDamage = Mathf.RoundToInt(damage - damageReduction);
         if (finalDamage < 1 && damage > 0) finalDamage = 1;
-
-        // Debug.Log($"Удар: {damage}. Броня: {TotalArmor}%. Итог: {finalDamage}");
         
         currentHealth -= finalDamage;
         if (currentHealth < 0) currentHealth = 0;
@@ -168,6 +188,5 @@ public class PlayerStats : MonoBehaviour
     private void Die()
     {
         Debug.Log("Игрок погиб!");
-        // Логику смерти обрабатывает CombatManager или GameStateManager
     }
 }

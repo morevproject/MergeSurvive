@@ -16,44 +16,46 @@ public class SoulListUI : MonoBehaviour
     public Transform contentContainer; 
     public GameObject soulItemPrefab;  
 
+    // Текущая вкладка (0..6)
+    private int currentTabIndex = 0; 
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
     }
 
-    // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ ---
     private void OnEnable()
     {
-        // 1. Подписываемся на событие открытия рецепта
         CraftingManager.OnRecipeDiscovered += OnRecipeDiscoveredHandler;
-        
-        // 2. Обновляемся при включении (вдруг что-то открыли, пока мы спали)
         RefreshUI();
     }
 
     private void OnDisable()
     {
-        // Отписываемся, чтобы не было ошибок
         CraftingManager.OnRecipeDiscovered -= OnRecipeDiscoveredHandler;
     }
 
-    // Этот метод сработает АВТОМАТИЧЕСКИ, когда CraftingManager скажет "Открыто!"
     private void OnRecipeDiscoveredHandler(Recipe recipe)
     {
-        // Debug.Log($"[UI] Ура! Новый рецепт {recipe.recipeName}, обновляю список!");
         RefreshUI();
     }
-    // ---------------------------------
 
     private void Start()
     {
         if (upgradeButton != null)
             upgradeButton.onClick.AddListener(OnUpgradeClicked);
 
-        // На старте тоже обновляем
         RefreshUI();
     }
     
+    // МЕТОД ДЛЯ КНОПОК
+    public void SetTab(int tabIndex)
+    {
+        currentTabIndex = tabIndex;
+        // Debug.Log($"[UI] Вкладка: {tabIndex}");
+        RefreshSoulList();
+    }
+
     public void RefreshUI()
     {
         UpdateUpgradeInfo();
@@ -67,8 +69,7 @@ public class SoulListUI : MonoBehaviour
         int currentGears = PlayerStats.Instance.Gears;
         int nextCost = PlayerStats.Instance.GetNextUpgradeCost();
 
-        if (currentGearsText != null) 
-            currentGearsText.text = $"{currentGears}"; 
+        if (currentGearsText != null) currentGearsText.text = $"{currentGears}"; 
 
         if (nextCost == -1) 
         {
@@ -83,9 +84,7 @@ public class SoulListUI : MonoBehaviour
                 upgradeButton.interactable = (currentGears >= nextCost);
             }
             if (maxLevelText != null) maxLevelText.SetActive(false);
-            
-            if (upgradeCostText != null) 
-                upgradeCostText.text = $"Улучшить Верстак за {nextCost}";
+            if (upgradeCostText != null) upgradeCostText.text = $"Улучшить Верстак за {nextCost}";
         }
     }
 
@@ -101,7 +100,7 @@ public class SoulListUI : MonoBehaviour
     {
         if (contentContainer == null || soulItemPrefab == null) return;
 
-        // Удаляем старые иконки
+        // Чистим список
         foreach (Transform child in contentContainer) Destroy(child.gameObject);
 
         if (CraftingManager.Instance == null) return;
@@ -111,13 +110,45 @@ public class SoulListUI : MonoBehaviour
 
         foreach (var recipe in recipes)
         {
-            GameObject obj = Instantiate(soulItemPrefab, contentContainer);
-            SoulItemUI ui = obj.GetComponent<SoulItemUI>();
-            
-            if (ui != null)
+            bool showRecipe = false;
+
+            // --- ЛОГИКА 7 ВКЛАДОК ---
+            switch (currentTabIndex)
             {
-                bool isLocked = recipe.requiredWorkbenchTier > playerTier;
-                ui.Setup(recipe, isLocked); 
+                case 0: // Всё
+                    showRecipe = true;
+                    break;
+                case 1: // Ресурсы
+                    showRecipe = (recipe.category == ItemCategory.Resource);
+                    break;
+                case 2: // Инструменты
+                    showRecipe = (recipe.category == ItemCategory.Tool);
+                    break;
+                case 3: // Оружие
+                    showRecipe = (recipe.category == ItemCategory.Weapon);
+                    break;
+                case 4: // Броня
+                    showRecipe = (recipe.category == ItemCategory.Armor);
+                    break;
+                case 5: // Еда (Food)
+                    showRecipe = (recipe.category == ItemCategory.Food);
+                    break;
+                case 6: // Боеприпасы (Ammo)
+                    showRecipe = (recipe.category == ItemCategory.Ammo);
+                    break;
+            }
+            // ------------------------
+
+            if (showRecipe)
+            {
+                GameObject obj = Instantiate(soulItemPrefab, contentContainer);
+                SoulItemUI ui = obj.GetComponent<SoulItemUI>();
+                
+                if (ui != null)
+                {
+                    bool isLocked = recipe.requiredWorkbenchTier > playerTier;
+                    ui.Setup(recipe, isLocked); 
+                }
             }
         }
     }

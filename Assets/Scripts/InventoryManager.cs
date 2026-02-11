@@ -281,4 +281,31 @@ public class InventoryManager : MonoBehaviour
         inventorySlots.Clear(); // Очищаем список
         UpdateInventoryUI();    // Обновляем картинку на экране
     }
+
+    // Получить количество предмета по ИМЕНИ (строке)
+    public int GetItemCountByName(string itemName)
+    {
+        foreach (var slot in inventorySlots) 
+        {
+            // Исправление: stackSize вместо count
+            if (slot.itemData != null && slot.itemData.ItemName == itemName)
+                return slot.stackSize; 
+        }
+        return 0;
+    }
+
+    // Найти саму ItemData по имени (нужно, чтобы положить её в слот крафта)
+    public ItemData GetItemDataByName(string itemName)
+    {
+        // В идеале у тебя должна быть общая база данных предметов.
+        // Если нет, ищем в инвентаре:
+        foreach (var slot in inventorySlots)
+        {
+            if (slot.itemData != null && slot.itemData.ItemName == itemName)
+                return slot.itemData;
+        }
+        // Если в инвентаре нет, ищем в AllRecipes (лайфхак: в рецептах есть outputPrefab или itemData?)
+        // Если у тебя нет глобальной базы ItemsDatabase, лучше добавить поле `public List<ItemData> allGameItems` в GameManager.
+        return null; 
+    }
 }
