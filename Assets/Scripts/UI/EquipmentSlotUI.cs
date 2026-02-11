@@ -90,7 +90,8 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
     {
         switch (slotType)
         {
-            case EquipmentSlotType.Weapon: return item.itemType == ItemType.Weapon || item.itemType == ItemType.Tool;
+            // Оставили строго ItemType.Weapon
+            case EquipmentSlotType.Weapon: return item.itemType == ItemType.Weapon;
             case EquipmentSlotType.Armor: return item.itemType == ItemType.Armor;
             case EquipmentSlotType.Ammo: return item.itemType == ItemType.Ammo;
             case EquipmentSlotType.ToolAxe: return item.itemType == ItemType.Tool && item.toolType == ToolType.Axe;

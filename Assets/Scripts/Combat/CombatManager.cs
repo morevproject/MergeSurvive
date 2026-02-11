@@ -25,7 +25,9 @@ public class CombatManager : MonoBehaviour
     private Animator heroAnim;
 
     private int turnCount = 0;
-    private bool battleInProgress = false;
+    
+    // --- ПЕРЕМЕННАЯ ИЗ ПРОШЛОГО ШАГА (Теперь публичное свойство) ---
+    public bool IsBattleInProgress { get; private set; } = false;
 
     void Awake()
     {
@@ -39,8 +41,16 @@ public class CombatManager : MonoBehaviour
         boss = bossRef;
         bossStats = boss.GetComponent<FighterStats>();
         
-        battleInProgress = true;
+        IsBattleInProgress = true;
         turnCount = 0;
+
+        // --- НОВОЕ: ПРИНУДИТЕЛЬНО ЗАКРЫВАЕМ ВСЕ ОКНА ---
+        // Если игрок был хитрым и стоял с открытым инвентарем, мы его закрываем!
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.CloseAllMenus();
+        }
+        // -----------------------------------------------
 
         // 1. ВКЛЮЧАЕМ ЗУМ БОЯ
         if (BattleCamera.Instance != null) BattleCamera.Instance.SetBattleZoom(true);
@@ -48,7 +58,7 @@ public class CombatManager : MonoBehaviour
         // 2. ПОЛУЧАЕМ КОМПОНЕНТЫ
         playerMovement = hero.GetComponent<PlayerMovement>();
         playerAnimScript = hero.GetComponent<PlayerAnimation>();
-        playerCombat = hero.GetComponent<PlayerCombatController>(); // Находим контроллер боя
+        playerCombat = hero.GetComponent<PlayerCombatController>(); 
         
         heroAnim = hero.GetComponent<Animator>();
         if (heroAnim == null) heroAnim = hero.GetComponentInChildren<Animator>();
@@ -114,7 +124,7 @@ public class CombatManager : MonoBehaviour
         Debug.Log("БОЙ: Дистанция сокращена. Начало раундов.");
 
         // --- ФАЗА 2: ЦИКЛ БОЯ ---
-        while (battleInProgress)
+        while (IsBattleInProgress)
         {
             turnCount++;
             Debug.Log($"--- РАУНД {turnCount} ---");
@@ -205,7 +215,7 @@ public class CombatManager : MonoBehaviour
     void HandlePlayerDeath()
     {
         Debug.Log("<color=red>ГЕРОЙ ПОГИБ!</color>");
-        battleInProgress = false;
+        IsBattleInProgress = false;
         StartCoroutine(ReloadRoutine());
     }
 
@@ -220,7 +230,7 @@ public class CombatManager : MonoBehaviour
 
     public void EndBattle(bool playerWon)
     {
-        battleInProgress = false;
+        IsBattleInProgress = false;
         
         // 1. ВЫКЛЮЧАЕМ ЗУМ (возвращаем камеру)
         if (BattleCamera.Instance != null) BattleCamera.Instance.SetBattleZoom(false);

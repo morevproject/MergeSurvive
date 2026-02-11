@@ -4,7 +4,7 @@ using System;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance; // Синглтон
+    public static UIManager Instance; 
 
     [Header("Inventory")]
     public GameObject InventoryPanel; 
@@ -14,31 +14,21 @@ public class UIManager : MonoBehaviour
     public GameObject CraftingPanel; 
     public Button craftingButton;
 
-    // События
     public static event Action<bool> OnInventoryToggled; 
     public static event Action<bool> OnCraftingToggled;  
 
     void Awake()
     {
-        // Инициализация Синглтона
-        if (Instance == null) 
-        {
-            Instance = this;
-        }
-        else 
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance == null) Instance = this;
+        else { Destroy(gameObject); return; }
     }
 
     void Start()
     {
-        // Настройка кнопок
         if (inventoryButton != null)
         {
             inventoryButton.onClick.RemoveAllListeners();
-            inventoryButton.onClick.AddListener(() => ToggleInventory(null)); // null = переключить
+            inventoryButton.onClick.AddListener(() => ToggleInventory(null)); 
         }
     
         if (craftingButton != null)
@@ -47,33 +37,47 @@ public class UIManager : MonoBehaviour
             craftingButton.onClick.AddListener(() => ToggleCrafting(null));
         }
 
-        // Скрываем панели при старте
         if (InventoryPanel != null) InventoryPanel.SetActive(false);
         if (CraftingPanel != null) CraftingPanel.SetActive(false);
     }
 
     void Update()
     {
-        // Горячие клавиши
+        // Блокируем горячие клавиши в бою!
+        if (CombatManager.Instance != null && CombatManager.Instance.IsBattleInProgress)
+        {
+             return; 
+        }
+
         if (Input.GetKeyDown(KeyCode.I)) ToggleInventory(null);
         if (Input.GetKeyDown(KeyCode.C)) ToggleCrafting(null);
         if (Input.GetKeyDown(KeyCode.Escape)) CloseAllMenus();
     }
 
-    // state = true (открыть), false (закрыть), null (переключить)
     public void ToggleInventory(bool? state = null)
     {
+        // --- ФИКС БАГА 2: Блокировка в бою ---
+        // Разрешаем только ЗАКРЫТЬ инвентарь (state == false), 
+        // но не разрешаем его открывать или переключать, если идет бой.
+        if (CombatManager.Instance != null && CombatManager.Instance.IsBattleInProgress)
+        {
+            if (state != false) // Пытаемся открыть или переключить (по кнопке)
+            {
+                Debug.LogWarning("Нельзя открыть инвентарь во время боя с боссом!");
+                // Тут можно вызвать UI текст: ShowWarningMessage("Драться надо, а не в рюкзаке копаться!");
+                return;
+            }
+        }
+        // ------------------------------------
+
         if (InventoryPanel != null)
         {
             bool isActive = state.HasValue ? state.Value : !InventoryPanel.activeSelf;
-            
-            // Если состояние не меняется — выходим
             if (InventoryPanel.activeSelf == isActive) return;
 
             InventoryPanel.SetActive(isActive);
             OnInventoryToggled?.Invoke(isActive);
 
-            // Если открыли инвентарь — закрываем верстак
             if (isActive && CraftingPanel != null) 
             {
                 CraftingPanel.SetActive(false);
@@ -85,16 +89,25 @@ public class UIManager : MonoBehaviour
 
     public void ToggleCrafting(bool? state = null)
     {
+        // --- ФИКС БАГА 2: Блокировка в бою ---
+        if (CombatManager.Instance != null && CombatManager.Instance.IsBattleInProgress)
+        {
+            if (state != false) 
+            {
+                Debug.LogWarning("Верстак недоступен во время битвы!");
+                return;
+            }
+        }
+        // ------------------------------------
+
         if (CraftingPanel != null)
         {
             bool isActive = state.HasValue ? state.Value : !CraftingPanel.activeSelf;
-
             if (CraftingPanel.activeSelf == isActive) return;
 
             CraftingPanel.SetActive(isActive);
             OnCraftingToggled?.Invoke(isActive);
 
-            // Если открыли верстак — закрываем инвентарь
             if (isActive && InventoryPanel != null)
             {
                 InventoryPanel.SetActive(false);
