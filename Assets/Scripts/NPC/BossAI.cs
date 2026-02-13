@@ -72,7 +72,10 @@ public class BossAI : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen) return;
+        
         if (isInCombat || myStats.isDead) return;
+        
         PatrolLogic();
         CheckAggro();
     }

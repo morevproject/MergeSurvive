@@ -155,7 +155,6 @@ public class UIManager : MonoBehaviour
         if (isOpen)
         {
             GameStateManager.Instance.SetState(GameStateManager.GameState.MenuOpen);
-            Time.timeScale = 0f; 
             
             if (attackButtonObject != null) attackButtonObject.SetActive(false);
             if (gatherButtonObject != null) gatherButtonObject.SetActive(false);
@@ -163,7 +162,6 @@ public class UIManager : MonoBehaviour
         else
         {
             GameStateManager.Instance.SetState(GameStateManager.GameState.Playing);
-            Time.timeScale = 1f; 
             
             // ћеню закрыто Ч ищем деревь€ заново
             if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();

@@ -69,6 +69,8 @@ public class BoarAI : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen) return;
+
         if (Physics.Raycast(transform.position, moveDirection, obstacleCheckDistance, obstacleMask))
         {
             PickNewDirection();

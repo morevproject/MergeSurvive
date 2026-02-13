@@ -88,7 +88,7 @@ public class InteractionUIManager : MonoBehaviour
         }
 
         // 3. ¬»«”¿À»«¿÷»ﬂ
-        if (playerVisuals != null)
+        if (hasCorrectTool)
         {
             playerVisuals.ShowToolTemporarily(neededToolType, 1.5f);
         }
