@@ -42,6 +42,14 @@ public class PlayerCombatController : MonoBehaviour
 
     void FindNearestEnemy()
     {
+        // --- ФИКС: Если открыто Меню, мы прячем кнопку и не ищем врагов ---
+        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen)
+        {
+            currentTarget = null;
+            if (attackButtonObject != null) attackButtonObject.SetActive(false);
+            return;
+        }
+
         if (PlayerStats.Instance == null) return;
         float range = PlayerStats.Instance.CurrentAttackRange;
         Collider[] enemies = Physics.OverlapSphere(transform.position, range, enemyLayer);

@@ -1784,6 +1784,7 @@ GameObject:
   - component: {fileID: 174970333}
   - component: {fileID: 174970332}
   - component: {fileID: 174970331}
+  - component: {fileID: 174970334}
   m_Layer: 5
   m_Name: Avatar_BG
   m_TagString: Untagged
@@ -1873,6 +1874,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 174970329}
   m_CullTransparentMesh: 1
+--- !u!225 &174970334
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 174970329}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!4 &179927701 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3865573010151310501, guid: 7ce160d4d883e2542abbfa85549718e6, type: 3}
@@ -14628,6 +14641,8 @@ MonoBehaviour:
   inventoryButton: {fileID: 691721567}
   CraftingPanel: {fileID: 200862656}
   craftingButton: {fileID: 604821622}
+  attackButtonObject: {fileID: 1515667215}
+  gatherButtonObject: {fileID: 821876640}
 --- !u!4 &1779840454
 Transform:
   m_ObjectHideFlags: 0

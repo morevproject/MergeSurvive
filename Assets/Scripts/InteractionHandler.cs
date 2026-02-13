@@ -17,6 +17,15 @@ public class InteractionHandler : MonoBehaviour
 
     private void Update()
     {
+        // --- ФИКС 1: БЛОКИРОВКА ПОИСКА ---
+        // Если открыто меню или идет бой с боссом — сбрасываем цель и не ищем новую
+        if (UIManager.Instance != null && (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode))
+        {
+            if (currentTarget != null) ClearTarget();
+            return;
+        }
+        // ---------------------------------
+
         // Проверка: не исчезла ли цель (уничтожена/выключена)
         if (currentTarget != null)
         {
@@ -28,6 +37,14 @@ public class InteractionHandler : MonoBehaviour
 
         FindNearestInteractable();
     }
+
+    // --- ФИКС 2: МЕТОД ДЛЯ СБРОСА ---
+    // Вызывается из UIManager, когда меню закрывается, чтобы мгновенно найти дерево рядом
+    public void ForceRefresh()
+    {
+        ClearTarget();
+    }
+    // -------------------------------
 
     private void FindNearestInteractable()
     {
@@ -71,7 +88,6 @@ public class InteractionHandler : MonoBehaviour
         }
     }
 
-    // --- ВОТ ЗДЕСЬ ГЛАВНЫЕ ИЗМЕНЕНИЯ ---
     public void InteractWithCurrentTarget()
     {
         if (currentTarget != null)
@@ -105,8 +121,6 @@ public class InteractionHandler : MonoBehaviour
                 // 2. Если нашли правильный инструмент в слоте — берем ЕГО урон
                 if (toolItem != null)
                 {
-                    // Используем случайный разброс, если в ItemData есть min/maxDamage
-                    // Если у тебя поле называется просто damage, замени на: toolItem.damage
                     damageToDeal = Random.Range(toolItem.minDamage, toolItem.maxDamage);
                 }
                 // 3. Если инструмента нет, берем общую силу (например, оружие в руке)
@@ -116,8 +130,8 @@ public class InteractionHandler : MonoBehaviour
                 }
             }
 
-            // Отладочный вывод, чтобы ты видел, какой урон прошел
-            Debug.Log($"[Interaction] Бьем {currentTarget.name}. Инструмент сработал? Урон: {damageToDeal}");
+            // Отладочный вывод
+            Debug.Log($"[Interaction] Бьем {currentTarget.name}. Урон: {damageToDeal}");
 
             // Наносим удар
             currentTarget.Interact(damageToDeal);

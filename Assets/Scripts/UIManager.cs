@@ -13,9 +13,16 @@ public class UIManager : MonoBehaviour
     [Header("Crafting")]
     public GameObject CraftingPanel; 
     public Button craftingButton;
+    
+    [Header("Action Buttons (To Hide)")]
+    public GameObject attackButtonObject; 
+    public GameObject gatherButtonObject; 
 
     public static event Action<bool> OnInventoryToggled; 
     public static event Action<bool> OnCraftingToggled;  
+    
+    public bool IsMenuOpen { get; private set; } 
+    public bool IsBossMode { get; private set; }
 
     void Awake()
     {
@@ -39,36 +46,61 @@ public class UIManager : MonoBehaviour
 
         if (InventoryPanel != null) InventoryPanel.SetActive(false);
         if (CraftingPanel != null) CraftingPanel.SetActive(false);
+        
+        SetMenuState(false);
+        SetBossMode(false);
     }
 
     void Update()
     {
-        // Блокируем горячие клавиши в бою!
-        if (CombatManager.Instance != null && CombatManager.Instance.IsBattleInProgress)
-        {
-             return; 
-        }
+        if (IsBossMode) return; 
 
         if (Input.GetKeyDown(KeyCode.I)) ToggleInventory(null);
         if (Input.GetKeyDown(KeyCode.C)) ToggleCrafting(null);
         if (Input.GetKeyDown(KeyCode.Escape)) CloseAllMenus();
     }
+    
+    // --- УПРАВЛЕНИЕ РЕЖИМОМ БОССА ---
+    public void SetBossMode(bool active)
+    {
+        IsBossMode = active;
+
+        // 1. Кнопки Меню
+        if (inventoryButton != null) inventoryButton.gameObject.SetActive(!active);
+        if (craftingButton != null) craftingButton.gameObject.SetActive(!active);
+        
+        // 2. Закрываем окна
+        if (active) CloseAllMenus();
+        
+        // 3. Прячем кнопки действий
+        if (active)
+        {
+            if (attackButtonObject != null) attackButtonObject.SetActive(false);
+            if (gatherButtonObject != null) gatherButtonObject.SetActive(false);
+        }
+        else
+        {
+            // Бой окончен — ищем деревья заново
+            if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();
+        }
+
+        // --- 4. КИНЕМАТОГРАФИЧНОСТЬ (НОВОЕ) ---
+        
+        // А) Скрываем/Показываем системный курсор
+        Cursor.visible = !active;
+        Cursor.lockState = active ? CursorLockMode.Locked : CursorLockMode.None;
+
+        // Б) Блокируем/Разблокируем слоты экипировки (чтобы нельзя было нажать)
+        if (PlayerProfileUI.Instance != null)
+        {
+            PlayerProfileUI.Instance.SetInputLock(active);
+        }
+    }
+    // ----------------------------------------
 
     public void ToggleInventory(bool? state = null)
     {
-        // --- ФИКС БАГА 2: Блокировка в бою ---
-        // Разрешаем только ЗАКРЫТЬ инвентарь (state == false), 
-        // но не разрешаем его открывать или переключать, если идет бой.
-        if (CombatManager.Instance != null && CombatManager.Instance.IsBattleInProgress)
-        {
-            if (state != false) // Пытаемся открыть или переключить (по кнопке)
-            {
-                Debug.LogWarning("Нельзя открыть инвентарь во время боя с боссом!");
-                // Тут можно вызвать UI текст: ShowWarningMessage("Драться надо, а не в рюкзаке копаться!");
-                return;
-            }
-        }
-        // ------------------------------------
+        if (IsBossMode && state != false) return; 
 
         if (InventoryPanel != null)
         {
@@ -89,16 +121,7 @@ public class UIManager : MonoBehaviour
 
     public void ToggleCrafting(bool? state = null)
     {
-        // --- ФИКС БАГА 2: Блокировка в бою ---
-        if (CombatManager.Instance != null && CombatManager.Instance.IsBattleInProgress)
-        {
-            if (state != false) 
-            {
-                Debug.LogWarning("Верстак недоступен во время битвы!");
-                return;
-            }
-        }
-        // ------------------------------------
+        if (IsBossMode && state != false) return;
 
         if (CraftingPanel != null)
         {
@@ -121,11 +144,30 @@ public class UIManager : MonoBehaviour
     {
         bool isInventoryOpen = (InventoryPanel != null && InventoryPanel.activeSelf);
         bool isCraftingOpen = (CraftingPanel != null && CraftingPanel.activeSelf);
+        
+        SetMenuState(isInventoryOpen || isCraftingOpen);
+    }
+    
+    void SetMenuState(bool isOpen)
+    {
+        IsMenuOpen = isOpen;
 
-        if (isInventoryOpen || isCraftingOpen)
+        if (isOpen)
+        {
             GameStateManager.Instance.SetState(GameStateManager.GameState.MenuOpen);
+            Time.timeScale = 0f; 
+            
+            if (attackButtonObject != null) attackButtonObject.SetActive(false);
+            if (gatherButtonObject != null) gatherButtonObject.SetActive(false);
+        }
         else
+        {
             GameStateManager.Instance.SetState(GameStateManager.GameState.Playing);
+            Time.timeScale = 1f; 
+            
+            // Меню закрыто — ищем деревья заново
+            if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();
+        }
     }
 
     public void CloseAllMenus()
