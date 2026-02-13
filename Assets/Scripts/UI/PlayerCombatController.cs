@@ -4,7 +4,7 @@ using UnityEngine.UI;
 public class PlayerCombatController : MonoBehaviour
 {
     [Header("UI")]
-    public Button attackButton; 
+    // Мы убрали AddListener, поэтому переменная кнопки нужна только для скрытия/показа
     public GameObject attackButtonObject; 
 
     [Header("Settings")]
@@ -17,12 +17,22 @@ public class PlayerCombatController : MonoBehaviour
     [Header("Animation")]
     public PlayerAnimation playerAnim;
 
+    private bool isAttackRequested = false;
+
     private Transform currentTarget; 
 
     void Start()
     {
         if (attackButtonObject != null) attackButtonObject.SetActive(false);
-        if (attackButton != null) attackButton.onClick.AddListener(StartAttackSequence);
+        
+        // --- УБРАЛИ ЭТУ СТРОКУ ---
+        // if (attackButton != null) attackButton.onClick.AddListener(StartAttackSequence);
+        // -------------------------
+    }
+
+    void OnDisable()
+    {
+        if (attackButtonObject != null) attackButtonObject.SetActive(false);
     }
 
     void Update()
@@ -30,14 +40,16 @@ public class PlayerCombatController : MonoBehaviour
         FindNearestEnemy();
     }
 
-    // --- ДОБАВЛЕНО: Прячем кнопку, если скрипт отключает CombatManager ---
-    void OnDisable()
-    {
-        if (attackButtonObject != null) attackButtonObject.SetActive(false);
-    }
-
     void FindNearestEnemy()
     {
+        // --- ФИКС: Если открыто Меню, мы прячем кнопку и не ищем врагов ---
+        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen)
+        {
+            currentTarget = null;
+            if (attackButtonObject != null) attackButtonObject.SetActive(false);
+            return;
+        }
+
         if (PlayerStats.Instance == null) return;
         float range = PlayerStats.Instance.CurrentAttackRange;
         Collider[] enemies = Physics.OverlapSphere(transform.position, range, enemyLayer);
@@ -69,9 +81,16 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
-    void StartAttackSequence()
+    // --- СДЕЛАЛИ PUBLIC (чтобы видеть в Инспекторе) ---
+    public void StartAttackSequence()
     {
+        // На всякий случай защита: если кнопки нет на экране - не бьем
+        if (attackButtonObject != null && !attackButtonObject.activeSelf) return;
+
         if (currentTarget == null) return;
+
+        // 2. ВЗВОДИМ ФЛАГ: "Мы реально хотим ударить"
+        isAttackRequested = true;
         
         transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
 
@@ -81,12 +100,22 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
+    // Этот метод вызывает анимация (Animation Event)
     public void ExecuteAttackLogic()
     {
-        // --- ВАЖНЫЙ ФИКС ---
-        // Игнорируем ивент анимации, если скрипт выключен (например, идет бой с боссом)
         if (!this.enabled) return;
-        // -------------------
+
+        // 3. ПРОВЕРЯЕМ ФЛАГ
+        // Если флаг false — значит, этот ивент прилетел из анимации Сбора (или другой), 
+        // а не по нажатию кнопки Атаки. ИГНОРИРУЕМ ЕГО.
+        if (!isAttackRequested) 
+        {
+            // Debug.Log("Игнорирую атаку: кнопка не была нажата (скорее всего, рубим дерево)");
+            return;
+        }
+
+        // СБРАСЫВАЕМ ФЛАГ (чтобы следующий случайный ивент снова не сработал)
+        isAttackRequested = false;
 
         if (currentTarget == null || PlayerProfileUI.Instance == null) return;
         

@@ -40,15 +40,6 @@ public class CraftingPanel : MonoBehaviour
             createButton.onClick.AddListener(OnActionClicked);
         }
     }
-    
-    // При выключении панели сбрасываем фильтр в инвентаре
-    /*void OnDisable()
-    {
-        if (InventoryManager.Instance != null)
-        {
-            InventoryManager.Instance.ResetFilter();
-        }
-    }*/
 
     // =========================================================
     // ЛОГИКА ВЫБОРА И СОЗДАНИЯ
@@ -78,7 +69,6 @@ public class CraftingPanel : MonoBehaviour
 
         if (selectedRecipe.isBaseResource)
         {
-            // Поиск
             if (ResourceFinder.Instance != null)
             {
                 ResourceFinder.Instance.FindResourceNodes(selectedRecipe.outputResourceName);
@@ -87,7 +77,6 @@ public class CraftingPanel : MonoBehaviour
         }
         else
         {
-            // Крафт
             TryCraftItem();
         }
     }
@@ -96,43 +85,29 @@ public class CraftingPanel : MonoBehaviour
     {
         if (InventoryManager.Instance == null) return;
 
-        // 1. Проверяем, есть ли ресурсы
         bool hasEnough = InventoryManager.Instance.HasResources(selectedRecipe.requiredIngredients);
 
         if (hasEnough)
         {
-            // А. РЕСУРСОВ ХВАТАЕТ
-            
-            // 1. Списываем ресурсы
             InventoryManager.Instance.ConsumeResources(selectedRecipe.requiredIngredients);
             
-            // 2. Добавляем в очередь (таймер на верстаке)
             if (WorldCraftingQueue.Instance != null)
             {
                 WorldCraftingQueue.Instance.AddToQueue(selectedRecipe);
             }
             else
             {
-                // Fallback: Если очереди нет, выдаем сразу
                 Debug.LogWarning("Очередь крафта не найдена, выдаю сразу.");
                 ItemData res = Resources.Load<ItemData>("Items/" + selectedRecipe.outputResourceName);
                 if (res == null) res = Resources.Load<ItemData>(selectedRecipe.outputResourceName);
                 InventoryManager.Instance.AddItem(res, selectedRecipe.outputAmount);
             }
-            
-            // Верстак НЕ закрываем, чтобы игрок мог крафтить дальше
             Debug.Log($"Крафт запущен: {selectedRecipe.recipeName}");
         }
         else
         {
-            // Б. НЕ ХВАТАЕТ РЕСУРСОВ
-            
             Debug.Log("Не хватает ресурсов! Переключаюсь на Инвентарь.");
-            
-            // 1. Показываем в инвентаре только нужные ресурсы (с пульсацией)
             InventoryManager.Instance.ShowMissingResourcesMode(selectedRecipe.requiredIngredients);
-            
-            // 2. Закрываем Верстак
             gameObject.SetActive(false);
         }
     }
@@ -182,26 +157,42 @@ public class CraftingPanel : MonoBehaviour
 
         if (resultSlot != null) resultSlot.SetResult(recipe); 
         
-        yield return new WaitForSeconds(1.0f);
+        // ВЕРНУЛИ ОБЫЧНЫЙ ТАЙМЕР (так как время теперь идет)
+        yield return new WaitForSeconds(1.0f); 
 
-        int currentWbTier = CraftingManager.Instance.currentWorkbenchTier;
-        int recipeTier = (int)recipe.itemTier;
-
-        if (recipeTier > currentWbTier + 1)
-        {
-            int neededTier = recipeTier - 1; 
-            if (neededTier < 0) neededTier = 0;
-            StartCoroutine(ShowWarning($"Требуется Верстак Ур. {neededTier}"));
-        }
-        else
-        {
-            CraftingManager.Instance.DiscoverRecipe(recipe);
-        }
-
+        // Очистка и логика (оставляем твой безопасный вариант с try-catch или обычный)
         foreach (var slot in slots) slot.ClearSlot(); 
-        if (resultSlot != null) resultSlot.ClearSlot(); 
+        if (resultSlot != null) resultSlot.ClearSlot();
+
+        // Теперь безопасно пытаемся добавить рецепт
+        try 
+        {
+            if (CraftingManager.Instance != null)
+            {
+                int currentWbTier = CraftingManager.Instance.currentWorkbenchTier;
+                int recipeTier = (int)recipe.itemTier;
+
+                if (recipeTier > currentWbTier + 1)
+                {
+                    int neededTier = recipeTier - 1; 
+                    if (neededTier < 0) neededTier = 0;
+                    StartCoroutine(ShowWarning($"Требуется Верстак Ур. {neededTier}"));
+                }
+                else
+                {
+                    // Если тут произойдет ошибка (например в SoulListUI), верстак уже чист
+                    CraftingManager.Instance.DiscoverRecipe(recipe);
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("ОШИБКА ПРИ ОТКРЫТИИ РЕЦЕПТА: " + e.Message);
+        }
 
         IsCrafting = false;
+        
+        // Проверяем, не положил ли игрок что-то новое
         CheckCrafting(); 
     }
 
@@ -211,7 +202,8 @@ public class CraftingPanel : MonoBehaviour
         {
             warningText.text = message;
             warningPanel.SetActive(true);
-            yield return new WaitForSeconds(2.0f);
+            // Тут тоже используем Realtime
+            yield return new WaitForSecondsRealtime(2.0f);
             warningPanel.SetActive(false);
         }
     }

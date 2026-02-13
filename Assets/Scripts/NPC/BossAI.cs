@@ -11,7 +11,7 @@ public class BossAI : MonoBehaviour
     public PatrolPath patrolPath;
     public float moveSpeed = 2f;
     public float rotationSpeed = 5f;
-    public HealthBar healthBar; // Сюда кидай префаб полоски
+    public HealthBar healthBar;
 
     [Header("Combat Settings")]
     public float aggroRadius = 5f; 
@@ -40,14 +40,11 @@ public class BossAI : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         myStats = GetComponent<FighterStats>();
 
-        // --- НОВОЕ: Настройка полоски ХП ---
         if (healthBar != null && myStats != null)
         {
             healthBar.Setup(myStats.maxHealth);
-            // Подписываемся на изменение здоровья
             myStats.OnHealthChanged += UpdateHealthBar;
         }
-        // ------------------------------------
         
         if (JustReloadedFromDeath)
         {
@@ -56,37 +53,29 @@ public class BossAI : MonoBehaviour
         }
     }
 
-    // --- Метод для обновления полоски (вызывается событием) ---
     void UpdateHealthBar(int currentHealth)
     {
-        if (healthBar != null)
-        {
-            healthBar.UpdateHealth(currentHealth);
-        }
+        if (healthBar != null) healthBar.UpdateHealth(currentHealth);
     }
 
-    // Обязательно отписываемся при уничтожении, чтобы не было ошибок
     void OnDestroy()
     {
-        if (myStats != null)
-        {
-            myStats.OnHealthChanged -= UpdateHealthBar;
-        }
+        if (myStats != null) myStats.OnHealthChanged -= UpdateHealthBar;
     }
 
     IEnumerator GracePeriod()
     {
         aggroDisabled = true;
-        Debug.Log("[BossAI] Игрок воскрес. Босс временно не атакует.");
         yield return new WaitForSeconds(5f);
         aggroDisabled = false;
-        Debug.Log("[BossAI] Босс снова опасен!");
     }
 
     void FixedUpdate()
     {
+        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen) return;
+        
         if (isInCombat || myStats.isDead) return;
-
+        
         PatrolLogic();
         CheckAggro();
     }
@@ -143,6 +132,10 @@ public class BossAI : MonoBehaviour
         if (isInCombat) return;
         isInCombat = true;
 
+        // --- 1. ВКЛЮЧАЕМ РЕЖИМ БОССА (Скрываем UI) ---
+        if (UIManager.Instance != null) UIManager.Instance.SetBossMode(true);
+        // ---------------------------------------------
+
         Debug.Log("!!! БОЙ НАЧАЛСЯ !!!");
         SaveManager.Instance.SaveGame();
         CombatManager.Instance.StartBattle(player.GetComponent<FighterStats>(), this);
@@ -150,6 +143,10 @@ public class BossAI : MonoBehaviour
     
     public void OnDeath()
     {
+        // --- 2. ВЫКЛЮЧАЕМ РЕЖИМ БОССА (Возвращаем UI) ---
+        if (UIManager.Instance != null) UIManager.Instance.SetBossMode(false);
+        // -----------------------------------------------
+
         if (lootItem != null && Random.Range(0, 100) < dropChance)
         {
             InventoryManager.Instance.AddItem(lootItem, 1);
@@ -158,14 +155,12 @@ public class BossAI : MonoBehaviour
         if (PlayerStats.Instance != null)
         {
             PlayerStats.Instance.AddGears(gearsDropAmount);
-            Debug.Log($"[BossAI] Босс побежден! Игрок получил {gearsDropAmount} шестерёнок.");
         }
 
         var worldID = GetComponent<WorldObjectID>();
         if (worldID != null) worldID.RegisterDestruction();
 
         Destroy(gameObject);
-        
         CombatManager.Instance.EndBattle(true);
     }
     
