@@ -10,16 +10,25 @@ public class SaveData
     // Инвентарь
     public List<InventorySaveData> inventory = new List<InventorySaveData>();
 
-    public int gearsCount = 0;       // Валюта (Шестерёнки)
-    public int workbenchTier = 1;    // Уровень верстака (по умолчанию 1)
-    public int hintBulbsCount = 0;   // Лампочки
+    public int gearsCount = 0;
+    public int workbenchTier = 1;
+    public int hintBulbsCount = 0;
     
-    // --- ПРОГРЕСС (Новое!) ---
-    // Список имен предметов (outputResourceName), рецепты которых мы изучили
+    // --- ПРОГРЕСС ---
     public List<string> unlockedRecipeIDs = new List<string>();
 
     // --- МИР ---
     public List<string> destroyedObjectIDs = new List<string>();
+
+    // --- НОВОЕ: ЭКИПИРОВКА ---
+    public string equippedWeaponID;
+    public string equippedArmorID;
+    public string equippedAxeID;
+    public string equippedPickaxeID;
+    public string equippedShovelID;
+    
+    public string equippedAmmoID;
+    public int equippedAmmoCount; // Для стрел важно помнить количество
 
     public SaveData()
     {

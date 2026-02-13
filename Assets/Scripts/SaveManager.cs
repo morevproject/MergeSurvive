@@ -49,17 +49,16 @@ public class SaveManager : MonoBehaviour
 
     public void SaveGame()
     {
-        // 1. Сохраняем Статы Игрока (ХП + Шестерни + Тир + ЛАМПОЧКИ)
+        // 1. Статы... (без изменений)
         if (PlayerStats.Instance != null)
         {
             currentSave.currentHealth = PlayerStats.Instance.currentHealth;
             currentSave.gearsCount = PlayerStats.Instance.Gears;
             currentSave.workbenchTier = PlayerStats.Instance.WorkbenchTier;
-            // Сохраняем валюту напрямую из статов
             currentSave.hintBulbsCount = PlayerStats.Instance.HintBulbs;
         }
         
-        // 2. Сохраняем Инвентарь
+        // 2. Инвентарь... (без изменений)
         currentSave.inventory.Clear();
         if (InventoryManager.Instance != null) 
         {
@@ -72,7 +71,14 @@ public class SaveManager : MonoBehaviour
             }
         }
 
-        // 3. Сохраняем Изученные Рецепты (Души)
+        // --- 3. НОВОЕ: ЭКИПИРОВКА ---
+        if (PlayerProfileUI.Instance != null)
+        {
+            PlayerProfileUI.Instance.SaveEquipmentToData(currentSave);
+        }
+        // ----------------------------
+
+        // 4. Рецепты... (без изменений)
         currentSave.unlockedRecipeIDs.Clear();
         if (CraftingManager.Instance != null)
         {
@@ -88,7 +94,7 @@ public class SaveManager : MonoBehaviour
         // Запись на диск
         string json = JsonUtility.ToJson(currentSave, true);
         File.WriteAllText(savePath, json);
-        Debug.Log($"Game Saved! Gears: {currentSave.gearsCount}, Bulbs: {currentSave.hintBulbsCount}");
+        Debug.Log("Saved!");
     }
 
     private void LoadFileOnly()
@@ -112,10 +118,9 @@ public class SaveManager : MonoBehaviour
 
     public void ApplyLoadData()
     {
-        // 1. Загружаем Статы (ХП + Шестерни + Тир + Лампочки)
+        // 1. Загружаем Статы... (без изменений)
         if (PlayerStats.Instance != null)
         {
-            // Передаем лампочки 4-м параметром
             PlayerStats.Instance.LoadProgress(
                 currentSave.currentHealth, 
                 currentSave.gearsCount, 
@@ -124,7 +129,7 @@ public class SaveManager : MonoBehaviour
             );
         }
 
-        // 2. Инвентарь
+        // 2. Инвентарь... (без изменений)
         if (InventoryManager.Instance != null)
         {
             InventoryManager.Instance.ClearInventory();
@@ -138,7 +143,15 @@ public class SaveManager : MonoBehaviour
             }
         }
 
-        // 3. Рецепты (Души)
+        // --- 3. НОВОЕ: ЭКИПИРОВКА ---
+        // Грузим экипировку ПОСЛЕ инвентаря
+        if (PlayerProfileUI.Instance != null)
+        {
+            PlayerProfileUI.Instance.LoadEquipmentFromData(currentSave);
+        }
+        // ----------------------------
+
+        // 4. Рецепты... (без изменений)
         if (CraftingManager.Instance != null)
         {
             CraftingManager.Instance.RestoreUnlockedRecipes(currentSave.unlockedRecipeIDs);

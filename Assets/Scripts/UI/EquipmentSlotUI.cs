@@ -9,8 +9,9 @@ public enum EquipmentSlotType
 
 public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    [Header("Settings")]
     public EquipmentSlotType slotType;
-    public Image iconImage;
+    public Image iconImage;     // В ИНСПЕКТОРЕ СНИМИ RAYCAST TARGET!
     public Sprite emptyIcon;
     public Text amountText; 
     public Canvas canvas; 
@@ -20,48 +21,50 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
     private GameObject draggingObject;
     private CanvasGroup canvasGroup; 
 
+    private void Awake()
+    {
+        currentItem = null;
+    }
+
     private void Start()
     {
-        UpdateVisual();
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvas == null) canvas = GetComponentInParent<Canvas>();
 
-        // ИСПРАВЛЕНО: Используем правильное имя события из InventoryManager
         if (InventoryManager.Instance != null)
         {
             InventoryManager.Instance.onInventoryChange += UpdateVisual;
         }
+        
+        // Это запустит проверку. Так как currentItem == null, 
+        // скрипт подтвердит отключение RaycastTarget.
+        Invoke(nameof(UpdateVisual), 0.1f);
     }
 
     private void OnDestroy()
     {
-        // ИСПРАВЛЕНО: Отписываемся от правильного события
         if (InventoryManager.Instance != null)
         {
             InventoryManager.Instance.onInventoryChange -= UpdateVisual;
         }
     }
 
-    public void OnDrop(PointerEventData eventData)
-    {
-        GameObject droppedObj = eventData.pointerDrag;
-        if (droppedObj == null) return;
-
-        UIDraggableItem draggable = droppedObj.GetComponent<UIDraggableItem>();
-        if (draggable != null && draggable.currentSlot.itemData != null)
-        {
-            ItemData newItem = draggable.currentSlot.itemData;
-            if (ValidateItem(newItem))
-            {
-                draggable.ForceEndDrag();
-                EquipItem(newItem);
-            }
-        }
-    }
+    // --- ЛОГИКА ПЕРЕТАСКИВАНИЯ ---
 
     public void OnBeginDrag(PointerEventData eventData) 
     { 
-        if (currentItem == null || canvas == null) return;
+        // 1. ЗАЩИТА (Страховка)
+        // Если галочка RaycastTarget выключена в инспекторе, этот метод ДАЖЕ НЕ ВЫЗОВЕТСЯ.
+        // Но если вдруг вызовется — мы мягко выходим.
+        if (currentItem == null) return;
+        
+        // Если мы видим пустую иконку — тоже выходим.
+        if (emptyIcon != null && iconImage.sprite == emptyIcon) return;
+        
+        if (canvas == null) return;
+        
+        // --- СОЗДАНИЕ ВИЗУАЛА ---
+        // Раз мы дошли сюда, значит предмет точно есть и Raycast был включен скриптом.
         
         draggingObject = new GameObject("Dragging Equip Icon");
         draggingObject.transform.SetParent(canvas.transform, false);
@@ -83,14 +86,33 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
     public void OnEndDrag(PointerEventData eventData) 
     { 
         if (draggingObject != null) Destroy(draggingObject); 
-        Unequip(); 
+        iconImage.enabled = true; 
+        UpdateVisual();
+    }
+
+    // --- ЛОГИКА ПРИЕМА ПРЕДМЕТА ---
+
+    public void OnDrop(PointerEventData eventData)
+    {
+        GameObject droppedObj = eventData.pointerDrag;
+        if (droppedObj == null) return;
+
+        UIDraggableItem draggable = droppedObj.GetComponent<UIDraggableItem>();
+        if (draggable != null && draggable.currentSlot.itemData != null)
+        {
+            ItemData newItem = draggable.currentSlot.itemData;
+            if (ValidateItem(newItem))
+            {
+                draggable.ForceEndDrag(); 
+                EquipItem(newItem);       
+            }
+        }
     }
 
     private bool ValidateItem(ItemData item)
     {
         switch (slotType)
         {
-            // Оставили строго ItemType.Weapon
             case EquipmentSlotType.Weapon: return item.itemType == ItemType.Weapon;
             case EquipmentSlotType.Armor: return item.itemType == ItemType.Armor;
             case EquipmentSlotType.Ammo: return item.itemType == ItemType.Ammo;
@@ -103,11 +125,25 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
 
     public void EquipItem(ItemData item)
     {
+        if (slotType == EquipmentSlotType.Ammo)
+        {
+            currentItem = item;
+            UpdateVisual();
+            if (PlayerProfileUI.Instance != null) PlayerProfileUI.Instance.OnEquipmentChanged();
+            return; 
+        }
+
+        if (currentItem != null)
+        {
+            InventoryManager.Instance.AddItem(currentItem, 1);
+        }
+
         currentItem = item;
+        InventoryManager.Instance.RemoveItem(item, 1);
+
         UpdateVisual();
         if (PlayerProfileUI.Instance != null) PlayerProfileUI.Instance.OnEquipmentChanged();
 
-        // Если это слот Оружия — передаем статы предмета в FighterStats
         if (slotType == EquipmentSlotType.Weapon)
         {
             var playerStats = GameObject.FindGameObjectWithTag("Player").GetComponent<FighterStats>();
@@ -120,18 +156,26 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
 
     public void Unequip()
     {
+        if (currentItem == null) return;
+
+        if (slotType == EquipmentSlotType.Ammo)
+        {
+            currentItem = null;
+            UpdateVisual();
+            if (PlayerProfileUI.Instance != null) PlayerProfileUI.Instance.OnEquipmentChanged();
+            return;
+        }
+
+        InventoryManager.Instance.AddItem(currentItem, 1);
         currentItem = null;
+        
         UpdateVisual();
         if (PlayerProfileUI.Instance != null) PlayerProfileUI.Instance.OnEquipmentChanged();
 
-        // Если сняли предмет из слота Оружия — возвращаем урон к кулакам
         if (slotType == EquipmentSlotType.Weapon)
         {
             var playerStats = GameObject.FindGameObjectWithTag("Player").GetComponent<FighterStats>();
-            if (playerStats != null)
-            {
-                playerStats.UpdateWeaponStats(0, 0, 0); // 0 сбросит на базовый урон
-            }
+            if (playerStats != null) playerStats.UpdateWeaponStats(0, 0, 0); 
         }
     }
 
@@ -140,34 +184,46 @@ public class EquipmentSlotUI : MonoBehaviour, IDropHandler, IPointerClickHandler
         if (!eventData.dragging) Unequip();
     }
 
-    private void UpdateVisual()
+    // --- ОБНОВЛЕНИЕ ВИЗУАЛА ---
+    public void UpdateVisual()
     {
         if (currentItem != null)
         {
             iconImage.sprite = currentItem.Icon;
             iconImage.enabled = true;
             iconImage.color = Color.white;
+            
+            // ВАЖНО: Включаем клики, только если есть предмет
+            iconImage.raycastTarget = true; 
 
-            // ДЕБАГ: Проверяем, видит ли скрипт Текст и сколько там предметов
             if (amountText != null)
             {
-                int count = InventoryManager.Instance.GetItemCount(currentItem);
-                Debug.Log($"[SlotUI] Обновляю слот {slotType}. Предмет: {currentItem.ItemName}, Насчитал: {count}");
-                
-                amountText.text = count.ToString(); // Просто показываем число, даже если 0
-                amountText.gameObject.SetActive(true);
+                if (slotType == EquipmentSlotType.Ammo)
+                {
+                    int totalArrows = InventoryManager.Instance.GetItemCount(currentItem);
+                    amountText.text = totalArrows.ToString();
+                    amountText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    amountText.gameObject.SetActive(false); 
+                }
             }
-            /*else
-            {
-                // Если в консоли появится это сообщение — значит ты забыл перетащить Текст в инспекторе!
-                Debug.LogError($"[SlotUI] ОШИБКА: В слоте {slotType} не назначено поле Amount Text!");
-            }*/
         }
         else
         {
-            if (emptyIcon != null) iconImage.sprite = emptyIcon;
-            iconImage.enabled = (emptyIcon != null);
-            if (emptyIcon == null) iconImage.enabled = false;
+            // ВАЖНО: Выключаем клики для пустоты
+            iconImage.raycastTarget = false;
+
+            if (emptyIcon != null) 
+            {
+                iconImage.sprite = emptyIcon;
+                iconImage.enabled = true; 
+            }
+            else
+            {
+                iconImage.enabled = false;
+            }
 
             if (amountText != null) amountText.gameObject.SetActive(false);
         }
