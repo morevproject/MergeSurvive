@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b517222f5658754691e88b4aac76fcc, type: 3}
   m_Name: Stone_Arrow_Recipe
   m_EditorClassIdentifier: 
-  recipeID: Stone_Arrow
-  recipeName: "\u041A\u0430\u043C\u0435\u043D\u043D\u0430\u044F \u0421\u0442\u0440\u0435\u043B\u0430"
+  recipeID: Stone_Arrow_Recipe
+  recipeName: "\u041A\u0430\u043C\u0435\u043D\u043D\u0430\u044F \u0441\u0442\u0440\u0435\u043B\u0430"
   description: 
-  icon: {fileID: 21300000, guid: b919a3e8d0e5dbc4984a40837d27bde6, type: 3}
+  icon: {fileID: 21300000, guid: b9065e348d6379a48ab00cceb63149a2, type: 3}
   itemTier: 1
   category: 5
+  requiredWorkbenchTier: 1
   requiredIngredients:
-  - resourceName: Stone
+  - resourceName: Sharp_Stone
     amount: 1
   - resourceName: Wood
     amount: 1

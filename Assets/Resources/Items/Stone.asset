@@ -14,15 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ItemName: Stone
   DisplayName: "\u041A\u0430\u043C\u0435\u043D\u044C"
-  Description: 
-  Icon: {fileID: 21300000, guid: 86b1e15e790bbe74daf36c9b1e0e5760, type: 3}
+  Description: "\u041F\u0440\u043E\u0441\u0442\u043E \u043A\u0430\u043C\u0435\u043D\u044C.
+    \u0410 \u0447\u0435\u0433\u043E \u0432\u044B \u0436\u0434\u0430\u043B\u0438?"
+  Icon: {fileID: 21300000, guid: 6cd84b3e4505da640a6049677034813c, type: 3}
   itemType: 0
   toolType: 0
   requiresAmmo: 0
   IsStackable: 1
   MaxStackSize: 99
   minDamage: 1
-  maxDamage: 3
-  attackRange: 1.5
+  maxDamage: 1
+  attackRange: 1
   armorValue: 0
   healAmount: 0

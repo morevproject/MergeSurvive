@@ -2,55 +2,75 @@ using UnityEngine;
 using System;
 using TMPro;
 
-public class PlayerStats : MonoBehaviour
+public class PlayerStats : FighterStats
 {
     public static PlayerStats Instance;
 
     [Header("UI References")]
     public TextMeshProUGUI armorStatText; 
 
-    [Header("Health")]
-    public int maxHealth = 100;
-    public int currentHealth;
+    [Header("Progression")]
+    public int Gears;
+    public int WorkbenchTier = 1;
+    public int HintBulbs = 0; 
 
-    // --- Прогрессия Верстака & Валюта ---
-    public int Gears { get; private set; }
-    public int WorkbenchTier { get; private set; } = 1;
-    public int HintBulbs { get; private set; } = 0; // <--- НОВОЕ: Лампочки
-
-    // Цена апгрейда: с 1 на 2 ур = 1 шестеренка, с 2 на 3 = 3 шестеренки
     public int[] upgradeCosts = new int[] { 1, 3, 5 }; 
-    // ----------------------------------
 
-    [Header("Base Stats")]
-    public int baseDamage = 1; 
-    public int baseArmor = 0; 
-
+    [Header("Player Specifics")]
+    public int basePlayerDamage = 1;
+    
     public int TotalDamage { get; private set; }
     public int TotalArmor { get; private set; }
     public float CurrentAttackRange { get; private set; } = 2f;
 
-    public event Action<float> OnHealthChanged;
     public event Action OnStatsUpdated;
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance != null && Instance != this) 
+        {
+            Destroy(this); 
+            return;
+        }
+        Instance = this;
     }
 
     private void Start()
     {
+        currentHealth = maxHealth;
         RecalculateStats(null, null, null, null, null, null); 
         UpdateHealthUI();
+
+        // УДАЛИЛИ СТРОКУ, ВЫЗЫВАЮЩУЮ ОШИБКУ CS0070.
+        // PlayerProfileUI сам обновит полоску в своем Start().
     }
 
-    // --- МЕТОДЫ ДЛЯ ЛАМПОЧЕК (НОВЫЕ) ---
+    // --- БОЕВАЯ СИСТЕМА ---
+    
+    public override void TakeDamage(int damage)
+    {
+        float damageMultiplier = 1.0f - (TotalArmor / 100.0f);
+        int finalDamage = Mathf.RoundToInt(damage * damageMultiplier);
+        
+        if (finalDamage < 1 && damage > 0 && TotalArmor < 100) finalDamage = 1;
+        
+        base.TakeDamage(finalDamage);
+        OnStatsUpdated?.Invoke();
+    }
+
+    public override void Heal(int amount)
+    {
+        base.Heal(amount);
+        OnStatsUpdated?.Invoke();
+    }
+
+    // --- ПРОГРЕССИЯ ---
+
     public void AddBulbs(int amount)
     {
         HintBulbs += amount;
         Debug.Log($"[PlayerStats] +{amount} Лампочек. Всего: {HintBulbs}");
-        OnStatsUpdated?.Invoke(); // Обновляем UI
+        OnStatsUpdated?.Invoke();
     }
 
     public bool SpendBulbs(int amount)
@@ -58,40 +78,28 @@ public class PlayerStats : MonoBehaviour
         if (HintBulbs >= amount)
         {
             HintBulbs -= amount;
-            Debug.Log($"[PlayerStats] Потрачено {amount} Лампочек. Осталось: {HintBulbs}");
             OnStatsUpdated?.Invoke();
             return true;
         }
         return false;
     }
-    // -----------------------------------
 
-    // --- МЕТОДЫ ДЛЯ ВЕРСТАКА ---
     public void AddGears(int amount)
     {
         Gears += amount;
-        Debug.Log($"[PlayerStats] +{amount} Шестерёнок. Всего: {Gears}");
-        
-        if (SoulListUI.Instance != null) 
-        {
-            SoulListUI.Instance.RefreshUI();
-        }
+        if (SoulListUI.Instance != null) SoulListUI.Instance.RefreshUI();
     }
 
     public bool TryUpgradeWorkbench()
     {
         int nextCost = GetNextUpgradeCost();
-        if (nextCost == -1) return false; // Макс уровень
+        if (nextCost == -1) return false;
 
         if (Gears >= nextCost)
         {
             Gears -= nextCost;
             WorkbenchTier++;
-            Debug.Log($"[PlayerStats] Верстак улучшен до уровня {WorkbenchTier}!");
-            
-            // Сохраняем прогресс сразу
             if (SaveManager.Instance != null) SaveManager.Instance.SaveGame();
-            
             return true;
         }
         return false;
@@ -100,93 +108,45 @@ public class PlayerStats : MonoBehaviour
     public int GetNextUpgradeCost()
     {
         int index = WorkbenchTier - 1;
-        if (index >= upgradeCosts.Length) return -1; // Больше нет апгрейдов
+        if (index >= upgradeCosts.Length) return -1;
         return upgradeCosts[index];
     }
 
-    // Обновленный метод загрузки (добавили bulbs)
     public void LoadProgress(int savedHp, int savedGears, int savedTier, int savedBulbs)
     {
         currentHealth = savedHp;
         Gears = savedGears;
         WorkbenchTier = (savedTier > 0) ? savedTier : 1;
-        HintBulbs = savedBulbs; // Загружаем лампочки
+        HintBulbs = savedBulbs;
         
         UpdateHealthUI();
         OnStatsUpdated?.Invoke();
-    }
-    // ----------------------------------
-
-    public void TakeDamage(int damage)
-    {
-        float damageReduction = damage * (TotalArmor / 100f);
-        int finalDamage = Mathf.RoundToInt(damage - damageReduction);
-        if (finalDamage < 1 && damage > 0) finalDamage = 1;
-        
-        currentHealth -= finalDamage;
-        if (currentHealth < 0) currentHealth = 0;
-
-        UpdateHealthUI();
-
-        if (currentHealth <= 0) Die();
-    }
-
-    public void Heal(int amount)
-    {
-        currentHealth += amount;
-        if (currentHealth > maxHealth) currentHealth = maxHealth;
-        UpdateHealthUI();
-    }
-
-    private void UpdateHealthUI()
-    {
-        float healthPercent = (float)currentHealth / maxHealth;
-        OnHealthChanged?.Invoke(healthPercent);
     }
 
     public void RecalculateStats(ItemData weapon, ItemData armor, ItemData ammo, ItemData axe, ItemData pickaxe, ItemData shovel)
     {
-        TotalDamage = baseDamage;
-        TotalArmor = baseArmor;
+        TotalDamage = basePlayerDamage;
+        TotalArmor = baseArmor; 
         CurrentAttackRange = 2f; 
 
-        if (weapon != null) 
-        {
-            TotalDamage += weapon.GetRandomDamage();
-            CurrentAttackRange = weapon.attackRange;
-        }
-        else if (axe != null) 
-        {
-            TotalDamage += axe.GetRandomDamage();
-            CurrentAttackRange = axe.attackRange;
-        }
-        else if (pickaxe != null) 
-        {
-            TotalDamage += pickaxe.GetRandomDamage();
-            CurrentAttackRange = pickaxe.attackRange;
-        }
-        else if (shovel != null)
-        {
-            TotalDamage += shovel.GetRandomDamage();
-            CurrentAttackRange = shovel.attackRange;
-        }
+        if (weapon != null) { TotalDamage += weapon.GetRandomDamage(); CurrentAttackRange = weapon.attackRange; }
+        else if (axe != null) { TotalDamage += axe.GetRandomDamage(); CurrentAttackRange = axe.attackRange; }
+        else if (pickaxe != null) { TotalDamage += pickaxe.GetRandomDamage(); CurrentAttackRange = pickaxe.attackRange; }
+        else if (shovel != null) { TotalDamage += shovel.GetRandomDamage(); CurrentAttackRange = shovel.attackRange; }
 
-        if (armor != null) 
-        {
-            TotalArmor += armor.armorValue; 
-        }
+        if (armor != null) TotalArmor += armor.armorValue; 
         if (TotalArmor > 100) TotalArmor = 100;
 
+        UpdateWeaponStats(TotalDamage, TotalDamage, CurrentAttackRange);
+
         if (armorStatText != null)
-        {
             armorStatText.text = $"Броня\n<color=blue>{TotalArmor}%</color>";
-        }
         
         OnStatsUpdated?.Invoke();
     }
 
-    private void Die()
+    private void UpdateHealthUI()
     {
-        Debug.Log("Игрок погиб!");
+        // UI обновляется через события FighterStats
     }
 }

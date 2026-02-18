@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-[RequireComponent(typeof(CanvasGroup))] // <--- АВТОМАТИЧЕСКИ ДОБАВЛЯЕТ КОМПОНЕНТ
+[RequireComponent(typeof(CanvasGroup))] 
 public class PlayerProfileUI : MonoBehaviour
 {
     public static PlayerProfileUI Instance;
@@ -24,13 +24,12 @@ public class PlayerProfileUI : MonoBehaviour
     public EquipmentSlotUI shovelSlot;   
 
     private bool isPanelExpanded = false;
-    private CanvasGroup canvasGroup; // <--- Ссылка на компонент блокировки
+    private CanvasGroup canvasGroup; 
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         
-        // Получаем компонент для управления прозрачностью и кликами
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
     }
@@ -39,8 +38,11 @@ public class PlayerProfileUI : MonoBehaviour
     {
         if (PlayerStats.Instance != null)
         {
+            // Теперь типы совпадают (int -> int)
             PlayerStats.Instance.OnHealthChanged += UpdateHealthBar;
-            UpdateHealthBar((float)PlayerStats.Instance.currentHealth / PlayerStats.Instance.maxHealth);
+            
+            // Сразу вызываем обновление с текущим здоровьем
+            UpdateHealthBar(PlayerStats.Instance.currentHealth);
         }
 
         if (avatarButton != null)
@@ -50,22 +52,27 @@ public class PlayerProfileUI : MonoBehaviour
         if (equipmentPanel != null) equipmentPanel.gameObject.SetActive(false); 
     }
 
-    // --- НОВЫЙ МЕТОД: БЛОКИРОВКА ВВОДА (ДЛЯ БОССА) ---
+    // --- БЛОКИРОВКА ВВОДА (ДЛЯ БОССА) ---
     public void SetInputLock(bool isLocked)
     {
         if (canvasGroup != null)
         {
-            // Если locked = true, мы отключаем Raycast (клики проходят сквозь, нажать нельзя)
-            // Но при этом все элементы остаются видимыми.
             canvasGroup.blocksRaycasts = !isLocked;
         }
     }
-    // -------------------------------------------------
 
-    private void UpdateHealthBar(float percent)
+    // --- ИСПРАВЛЕНИЕ: Принимаем int, считаем процент сами ---
+    private void UpdateHealthBar(int currentHealth)
     {
-        if (healthBarFill != null) healthBarFill.fillAmount = percent;
+        if (PlayerStats.Instance == null) return;
+
+        // Считаем процент (0.0 ... 1.0)
+        float percent = (float)currentHealth / PlayerStats.Instance.maxHealth;
+
+        if (healthBarFill != null) 
+            healthBarFill.fillAmount = percent;
     }
+    // --------------------------------------------------------
 
     public void TogglePanel()
     {
@@ -73,6 +80,7 @@ public class PlayerProfileUI : MonoBehaviour
         if (equipmentPanel != null) equipmentPanel.gameObject.SetActive(isPanelExpanded);
     }
 
+    // --- ГЛАВНЫЙ МЕТОД ОБНОВЛЕНИЯ ---
     public void OnEquipmentChanged()
     {
         // 1. Логика стрел
@@ -102,9 +110,14 @@ public class PlayerProfileUI : MonoBehaviour
                 pickaxeSlot != null ? pickaxeSlot.currentItem : null,
                 shovelSlot != null ? shovelSlot.currentItem : null 
             );
+
+            // --- ФИКС БАГА С ХП ---
+            // Принудительно обновляем визуал здоровья сразу после пересчета
+            UpdateHealthBar(PlayerStats.Instance.currentHealth);
+            // ----------------------
         }
 
-        // 3. СИНХРОНИЗАЦИЯ ИГРОКА (Критично для Босса!)
+        // 3. СИНХРОНИЗАЦИЯ БОЕВЫХ СТАТОВ ИГРОКА
         var playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
         {
@@ -121,6 +134,15 @@ public class PlayerProfileUI : MonoBehaviour
                     fighterStats.UpdateWeaponStats(0, 0, 0); 
                 }
             }
+        }
+
+        // 4. ОБНОВЛЕНИЕ 3D-МОДЕЛЕЙ НА ПЕРСОНАЖЕ
+        if (PlayerEquipmentVisuals.Instance != null)
+        {
+            PlayerEquipmentVisuals.Instance.UpdateWeaponVisuals(weaponSlot.currentItem);
+            
+            string armorID = (armorSlot.currentItem != null) ? armorSlot.currentItem.ItemName : "";
+            PlayerEquipmentVisuals.Instance.EquipArmor(armorID);
         }
     }
 
@@ -146,10 +168,8 @@ public class PlayerProfileUI : MonoBehaviour
 
     public void LoadEquipmentFromData(SaveData data)
     {
-        // 1. Грузим ОРУЖИЕ
         LoadSlot(weaponSlot, data.equippedWeaponID);
         
-        // 2. СТРЕЛЫ
         if (ammoSlot != null)
         {
             bool hasSavedAmmo = !string.IsNullOrEmpty(data.equippedAmmoID);
@@ -169,16 +189,12 @@ public class PlayerProfileUI : MonoBehaviour
             }
         }
 
-        // 3. Грузим остальное
         LoadSlot(armorSlot, data.equippedArmorID);
         LoadSlot(axeSlot, data.equippedAxeID);
         LoadSlot(pickaxeSlot, data.equippedPickaxeID);
         LoadSlot(shovelSlot, data.equippedShovelID);
         
-        // 4. ОБЯЗАТЕЛЬНО: Мгновенный пересчет для синхронизации FighterStats
         OnEquipmentChanged(); 
-        
-        // 5. Отложенная перестраховка
         Invoke(nameof(ForceStatsRecalculation), 0.2f);
     }
 

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b58fef9d338c3c84ea771db035b716dc, type: 3}
+  m_Name: Ash_Mushroom
+  m_EditorClassIdentifier: 
+  ItemName: Ash_Mushroom
+  DisplayName: "\u041F\u0435\u043F\u0435\u043B\u044C\u043D\u044B\u0439 \u0433\u0440\u0438\u0431"
+  Description: "\u041D\u0435 \u0432\u043A\u0443\u0441\u043D\u043E \u0438 \u0433\u0440\u0443\u0441\u0442\u043D\u043E.
+    \u041D\u043E \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u043B\u0435\u0437\u043D\u043E!\n\n\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442
+    <color=green>5 HP</color>."
+  Icon: {fileID: 21300000, guid: 0d2ed9a13d0c76d43aad16e0a26c8f87, type: 3}
+  itemType: 4
+  toolType: 0
+  requiresAmmo: 0
+  IsStackable: 1
+  MaxStackSize: 99
+  minDamage: 1
+  maxDamage: 1
+  attackRange: 1
+  armorValue: 0
+  healAmount: 5

@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: Stone_Arrow
   m_EditorClassIdentifier: 
   ItemName: Stone_Arrow
-  DisplayName: "\u041A\u0430\u043C\u0435\u043D\u043D\u0430\u044F \u0421\u0442\u0440\u0435\u043B\u0430"
-  Description: 
-  Icon: {fileID: 21300000, guid: b919a3e8d0e5dbc4984a40837d27bde6, type: 3}
+  DisplayName: "\u041A\u0430\u043C\u0435\u043D\u043D\u0430\u044F \u0441\u0442\u0440\u0435\u043B\u0430"
+  Description: "\u0421\u0430\u043C\u0430\u044F \u043F\u0440\u043E\u0441\u0442\u0430\u044F
+    \u0441\u0442\u0440\u0435\u043B\u0430. \u041C\u043E\u0436\u043D\u043E \u0441\u0442\u0440\u0435\u043B\u044F\u0442\u044C
+    \u0438\u0437 \u043B\u0443\u043A\u043E\u0432."
+  Icon: {fileID: 21300000, guid: b9065e348d6379a48ab00cceb63149a2, type: 3}
   itemType: 5
   toolType: 0
   requiresAmmo: 0

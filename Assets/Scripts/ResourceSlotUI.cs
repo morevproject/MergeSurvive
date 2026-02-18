@@ -13,34 +13,47 @@ public class ResourceSlotUI : MonoBehaviour
     public ItemData itemData; 
 
     private bool shouldPulse = false; 
-    private Button buttonComponent; // Ссылка на кнопку
+    private Button buttonComponent; 
 
     private void Awake()
     {
         buttonComponent = GetComponent<Button>();
+        
+        // АВТОМАТИЧЕСКИ ПОДПИСЫВАЕМСЯ НА КЛИК
+        if (buttonComponent != null)
+        {
+            buttonComponent.onClick.RemoveAllListeners(); // На случай дублей
+            buttonComponent.onClick.AddListener(OnSlotClicked);
+        }
     }
+
+    // --- ОБРАБОТКА КЛИКА ПО СЛОТУ ---
+    public void OnSlotClicked()
+    {
+        // Передаем данные в панель деталей
+        if (itemData != null && InventoryItemDetails.Instance != null)
+        {
+            InventoryItemDetails.Instance.SelectItem(itemData);
+        }
+    }
+    // --------------------------------
 
     private void Update()
     {
-        // Если пульсация включена и иконка есть -> анимируем
+        // Логика пульсации (для туториалов или подсветки нехватки ресурсов)
         if (shouldPulse && iconImage != null)
         {
-            // Параметры анимации
             float speed = 8.0f; 
             float minScale = 0.9f;
             float maxScale = 1.1f;
             
             Color normalColor = Color.white;
-            Color alertColor = new Color(1f, 0.3f, 0.3f); // Светло-красный
+            Color alertColor = new Color(1f, 0.3f, 0.3f); 
 
-            // UnscaledTime чтобы работало даже на паузе
             float time = Time.unscaledTime * speed;
             float factor = (Mathf.Sin(time) + 1.0f) / 2.0f; 
 
-            // 1. Анимация Размера
             iconImage.transform.localScale = Vector3.one * Mathf.Lerp(minScale, maxScale, factor);
-
-            // 2. Анимация Цвета
             iconImage.color = Color.Lerp(normalColor, alertColor, factor);
         }
     }
@@ -51,7 +64,7 @@ public class ResourceSlotUI : MonoBehaviour
         currentAmount = newAmount;
         itemData = newItemData;
 
-        // Автопоиск иконки, если пустая ссылка
+        // Если ссылки на UI слетели, пробуем найти их
         if (iconImage == null)
         {
             Transform t = transform.Find("Icon");
@@ -65,8 +78,6 @@ public class ResourceSlotUI : MonoBehaviour
             {
                 iconImage.sprite = newIcon;
                 iconImage.enabled = true;
-                
-                // СБРОС СОСТОЯНИЯ ПРИ ОБНОВЛЕНИИ
                 iconImage.color = Color.white; 
                 iconImage.transform.localScale = Vector3.one;
             }
@@ -78,6 +89,7 @@ public class ResourceSlotUI : MonoBehaviour
         
         UpdateAmount(newAmount);
         
+        // Обновляем данные для Drag & Drop
         var draggable = GetComponent<UIDraggableItem>();
         if (draggable != null)
         {
@@ -100,22 +112,13 @@ public class ResourceSlotUI : MonoBehaviour
     {
         shouldPulse = isActive;
         
-        // --- ГЛАВНЫЙ ФИКС: Управление Кнопкой ---
         if (buttonComponent != null)
         {
-            if (isActive)
-            {
-                // Если пульсируем - отключаем вмешательство кнопки в цвет
-                buttonComponent.transition = Selectable.Transition.None;
-            }
-            else
-            {
-                // Если закончили - возвращаем стандартное поведение (Tint или что было)
-                buttonComponent.transition = Selectable.Transition.ColorTint;
-            }
+            // Если пульсируем - отключаем стандартную реакцию кнопки, чтобы не мешала цвету
+            if (isActive) buttonComponent.transition = Selectable.Transition.None;
+            else buttonComponent.transition = Selectable.Transition.ColorTint;
         }
 
-        // Если выключаем пульсацию - принудительно сбрасываем цвета в норму
         if (!isActive && iconImage != null)
         {
             iconImage.color = Color.white;
@@ -125,7 +128,6 @@ public class ResourceSlotUI : MonoBehaviour
 
     private void OnDisable()
     {
-        // Страховка: при выключении объекта сбрасываем визуал
         if (iconImage != null)
         {
             iconImage.color = Color.white;

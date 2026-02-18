@@ -16,21 +16,16 @@ public class InteractionUIManager : MonoBehaviour
         HideInteraction(); 
     }
 
-    // Вызывается, когда мы подошли к ресурсу
     public void ShowInteraction(WorldInteractable interactable)
     {
-        // --- ФИКС: ЖЕЛЕЗНАЯ ЗАЩИТА ---
-        // Если UIManager говорит, что сейчас бой или меню — ИГНОРИРУЕМ просьбу показать кнопку
         if (UIManager.Instance != null)
         {
             if (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode)
             {
-                // На всякий случай убеждаемся, что она выключена
                 HideInteraction();
                 return;
             }
         }
-        // -----------------------------
         
         if (interactButton == null) return;
 
@@ -50,16 +45,15 @@ public class InteractionUIManager : MonoBehaviour
         {
             PlayGatheringEffects();
         }
-
         InteractionHandler.Instance.InteractWithCurrentTarget();
     }
 
     private void PlayGatheringEffects()
     {
-        var playerVisuals = FindObjectOfType<PlayerEquipmentVisuals>();
+        var playerVisuals = PlayerEquipmentVisuals.Instance;
         var playerAnim = FindObjectOfType<PlayerAnimation>();
 
-        // 1. ОПРЕДЕЛЯЕМ, ЧТО НУЖНО
+        // 1. ОПРЕДЕЛЯЕМ ТИП ИНСТРУМЕНТА (чтобы знать, где искать)
         string neededToolType = "Axe"; 
         string targetName = currentInteractable.gameObject.name;
         
@@ -72,27 +66,45 @@ public class InteractionUIManager : MonoBehaviour
             neededToolType = "Shovel";
         }
 
-        // 2. ПРОВЕРЯЕМ, ЕСТЬ ЛИ ЭТО У НАС
-        bool hasCorrectTool = false;
+        // 2. ИЩЕМ КОНКРЕТНОЕ ИМЯ ПРЕДМЕТА В СЛОТАХ
+        // (Нам нужно не просто "Pickaxe", а "Scrap_Pickaxe" или "Cyber_Pickaxe")
+        string foundItemID = "";
         
         if (PlayerProfileUI.Instance != null)
         {
-            if (CheckSlotForTool(PlayerProfileUI.Instance.weaponSlot, neededToolType)) hasCorrectTool = true;
-            else if (neededToolType == "Axe" && CheckSlotForTool(PlayerProfileUI.Instance.axeSlot, "Axe")) hasCorrectTool = true;
-            else if (neededToolType == "Pickaxe" && CheckSlotForTool(PlayerProfileUI.Instance.pickaxeSlot, "Pickaxe")) hasCorrectTool = true;
-            else if (neededToolType == "Shovel" && CheckSlotForTool(PlayerProfileUI.Instance.shovelSlot, "Shovel")) hasCorrectTool = true;
+            // А. Проверяем оружие (вдруг держим инструмент как меч)
+            if (CheckSlotForTool(PlayerProfileUI.Instance.weaponSlot, neededToolType)) 
+            {
+                foundItemID = PlayerProfileUI.Instance.weaponSlot.currentItem.ItemName;
+            }
+            // Б. Проверяем профильные слоты
+            else if (neededToolType == "Axe" && CheckSlotForTool(PlayerProfileUI.Instance.axeSlot, "Axe")) 
+            {
+                foundItemID = PlayerProfileUI.Instance.axeSlot.currentItem.ItemName;
+            }
+            else if (neededToolType == "Pickaxe" && CheckSlotForTool(PlayerProfileUI.Instance.pickaxeSlot, "Pickaxe")) 
+            {
+                foundItemID = PlayerProfileUI.Instance.pickaxeSlot.currentItem.ItemName;
+            }
+            else if (neededToolType == "Shovel" && CheckSlotForTool(PlayerProfileUI.Instance.shovelSlot, "Shovel")) 
+            {
+                foundItemID = PlayerProfileUI.Instance.shovelSlot.currentItem.ItemName;
+            }
         }
+        // Fallback для тестов без UI (если нужно)
         else 
         {
-            hasCorrectTool = true; 
+            // Тут мы не знаем имя, поэтому ничего не покажем, но анимацию сыграем
         }
 
         // 3. ВИЗУАЛИЗАЦИЯ
-        if (hasCorrectTool)
+        // Запускаем показ только если нашли КОНКРЕТНЫЙ предмет
+        if (playerVisuals != null && !string.IsNullOrEmpty(foundItemID))
         {
-            playerVisuals.ShowToolTemporarily(neededToolType, 1.5f);
+            playerVisuals.ShowToolTemporarily(foundItemID, 1.5f);
         }
 
+        // Анимацию руками играем всегда
         if (playerAnim != null)
         {
             playerAnim.TriggerGather();

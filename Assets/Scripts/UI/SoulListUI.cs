@@ -136,6 +136,9 @@ public class SoulListUI : MonoBehaviour
                 case 6: // Боеприпасы (Ammo)
                     showRecipe = (recipe.category == ItemCategory.Ammo);
                     break;
+                case 7: // Станции (Stations)
+                    showRecipe = (recipe.category == ItemCategory.Stations);
+                    break;
             }
             // ------------------------
 

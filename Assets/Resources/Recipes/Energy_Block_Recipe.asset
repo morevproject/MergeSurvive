@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b517222f5658754691e88b4aac76fcc, type: 3}
+  m_Name: Energy_Block_Recipe
+  m_EditorClassIdentifier: 
+  recipeID: Energy_Block_Recipe
+  recipeName: "\u042D\u043D\u0435\u0440\u0433\u043E-\u0431\u043B\u043E\u043A"
+  description: 
+  icon: {fileID: 21300000, guid: 56007b350b38567469affc9ae51735fc, type: 3}
+  itemTier: 2
+  category: 0
+  requiredWorkbenchTier: 1
+  requiredIngredients:
+  - resourceName: Old_Battery
+    amount: 2
+  - resourceName: Copper_Wire
+    amount: 1
+  outputResourceName: Energy_Block
+  outputAmount: 1
+  outputPrefab: {fileID: 0}
+  isBaseResource: 0
+  isDiscovered: 0

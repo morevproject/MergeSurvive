@@ -105,8 +105,17 @@ MonoBehaviour:
   patrolSpeed: 1.5
   panicSpeed: 5
   panicDuration: 2
-  lootItem: {fileID: 11400000, guid: e8e3c57e30693c7409e7a41d3ac10e6d, type: 2}
-  dropChance: 60
+  lootTable:
+  - name: "\u041C\u0435\u0442\u0430\u043B\u043B\u043E\u043B\u043E\u043C"
+    item: {fileID: 11400000, guid: cbb9647113f4aab408d88b7c2300bf61, type: 2}
+    dropChance: 100
+    minAmount: 5
+    maxAmount: 7
+  - name: "\u0421\u0442\u0430\u0440\u0430\u044F \u0431\u0430\u0442\u0430\u0440\u0435\u0439\u043A\u0430"
+    item: {fileID: 11400000, guid: d17d3613b03708b4994a8f3073567aaa, type: 2}
+    dropChance: 0.2
+    minAmount: 1
+    maxAmount: 1
   changeDirectionTime: 3
   obstacleMask:
     serializedVersion: 2

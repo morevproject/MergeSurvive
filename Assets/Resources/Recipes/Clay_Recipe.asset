@@ -12,15 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b517222f5658754691e88b4aac76fcc, type: 3}
   m_Name: Clay_Recipe
   m_EditorClassIdentifier: 
-  recipeID: Clay
+  recipeID: Clay_Recipe
   recipeName: "\u0413\u043B\u0438\u043D\u0430"
   description: 
-  icon: {fileID: 21300000, guid: 2585b6b70253049468c0e4276871620d, type: 3}
+  icon: {fileID: 21300000, guid: c6643b5f10b31254798c815559131c07, type: 3}
   itemTier: 0
   category: 0
+  requiredWorkbenchTier: 1
   requiredIngredients: []
   outputResourceName: Clay
   outputAmount: 1
   outputPrefab: {fileID: 0}
   isBaseResource: 1
-  isDiscovered: 1
+  isDiscovered: 0

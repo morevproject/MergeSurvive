@@ -14,15 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ItemName: Wood
   DisplayName: "\u0414\u0440\u0435\u0432\u0435\u0441\u0438\u043D\u0430"
-  Description: 
-  Icon: {fileID: 21300000, guid: 97dd6c0447210af47b76523b85b717a8, type: 3}
+  Description: "\u041D\u0435\u043E\u0442\u0451\u0441\u0430\u043D\u043D\u0430\u044F
+    \u0434\u0440\u0435\u0432\u0435\u0441\u0438\u043D\u0430."
+  Icon: {fileID: 21300000, guid: b6e095dc5c6f5934cad394b5de2fbdea, type: 3}
   itemType: 0
   toolType: 0
   requiresAmmo: 0
   IsStackable: 1
   MaxStackSize: 99
   minDamage: 1
-  maxDamage: 3
-  attackRange: 1.5
+  maxDamage: 1
+  attackRange: 1
   armorValue: 0
   healAmount: 0

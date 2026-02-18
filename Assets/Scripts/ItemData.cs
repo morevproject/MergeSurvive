@@ -7,7 +7,8 @@ public enum ItemType
     Weapon,
     Armor,
     Food,
-    Ammo
+    Ammo,
+    Station
 }
 
 // ”ƒјЋ≈Ќќ: enum ToolType, так как он уже есть в GameEnums.cs

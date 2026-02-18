@@ -1,25 +1,36 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BoarAI : MonoBehaviour
 {
     [Header("Stats")]
-    public string enemyName = "Robot Enemy"; // Переименовали, раз это робот
+    public string enemyName = "Robot Enemy"; 
     public int maxHealth = 10;
     private int currentHealth;
 
-    // --- НОВОЕ: Ссылка на полоску здоровья ---
     public HealthBar healthBar;
-    // ----------------------------------------
     
     [Header("Speed Settings")]
     public float patrolSpeed = 1.5f; 
     public float panicSpeed = 5f;    
     public float panicDuration = 2f; 
 
-    [Header("Loot")]
-    public ItemData lootItem;
-    [Range(0, 100)] public int dropChance = 50; 
+    // --- НОВАЯ СИСТЕМА ЛУТА ---
+    [System.Serializable]
+    public class EnemyLoot
+    {
+        public string name; // Для удобства в инспекторе (не влияет на логику)
+        public ItemData item;
+        [Range(0, 100)] public float dropChance = 50f; // Шанс в %
+        public int minAmount = 1;
+        public int maxAmount = 1;
+    }
+
+    [Header("Loot Table")]
+    // Список всех возможных предметов с этого врага
+    public List<EnemyLoot> lootTable = new List<EnemyLoot>(); 
+    // --------------------------
 
     [Header("Movement")]
     public float changeDirectionTime = 3f;
@@ -37,19 +48,16 @@ public class BoarAI : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        // Пытаемся найти рендерер на дочернем объекте (если робот составной)
         rend = GetComponentInChildren<Renderer>(); 
         if (rend != null) originalColor = rend.material.color;
 
         currentHealth = maxHealth;
         currentSpeed = patrolSpeed;
 
-        // --- Инициализация полоски здоровья ---
         if (healthBar != null)
         {
             healthBar.Setup(maxHealth);
         }
-        // --------------------------------------
         
         moveTimer = changeDirectionTime;
         PickNewDirection();
@@ -69,6 +77,7 @@ public class BoarAI : MonoBehaviour
 
     void FixedUpdate()
     {
+        // Если открыто меню — стоим
         if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen) return;
 
         if (Physics.Raycast(transform.position, moveDirection, obstacleCheckDistance, obstacleMask))
@@ -97,10 +106,8 @@ public class BoarAI : MonoBehaviour
     {
         currentHealth -= damage;
         
-        // 1. Вылетающая цифра
         DamagePopup.Create(transform.position + Vector3.up * 2f, damage);
 
-        // 2. Обновление полоски
         if (healthBar != null)
         {
             healthBar.UpdateHealth(currentHealth);
@@ -135,25 +142,31 @@ public class BoarAI : MonoBehaviour
     {
         Debug.Log("Враг побежден!");
 
-        if (lootItem != null)
+        // --- НОВАЯ ЛОГИКА ВЫДАЧИ ЛУТА ---
+        if (InventoryManager.Instance != null && lootTable.Count > 0)
         {
-            int rolls = maxHealth / 2;
-            int totalDropped = 0;
-
-            for (int i = 0; i < rolls; i++)
+            foreach (var lootRule in lootTable)
             {
-                if (Random.Range(0, 101) <= dropChance)
+                if (lootRule.item == null) continue;
+
+                // Кидаем кубик (0..100)
+                float roll = Random.Range(0f, 100f);
+
+                if (roll <= lootRule.dropChance)
                 {
-                    totalDropped++;
+                    // Определяем количество
+                    int amountToGive = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
+                    
+                    if (amountToGive > 0)
+                    {
+                        InventoryManager.Instance.AddItem(lootRule.item, amountToGive);
+                        // Лог для проверки
+                        Debug.Log($"Лут: +{amountToGive} {lootRule.item.ItemName}");
+                    }
                 }
             }
-
-            if (totalDropped > 0)
-            {
-                InventoryManager.Instance.AddItem(lootItem, totalDropped);
-                Debug.Log($"Лут: +{totalDropped} {lootItem.DisplayName}");
-            }
         }
+        // --------------------------------
 
         var worldID = GetComponent<WorldObjectID>();
         if (worldID != null)

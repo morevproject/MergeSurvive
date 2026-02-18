@@ -26,7 +26,7 @@ public class WorldCraftingQueue : MonoBehaviour
         public QueueItem(Recipe r)
         {
             recipe = r;
-            duration = 5.0f; 
+            duration = 5.0f; // Можно сделать зависимым от рецепта
             timeRemaining = duration;
         }
     }
@@ -56,9 +56,11 @@ public class WorldCraftingQueue : MonoBehaviour
     {
         if (craftingQueue.Count > 0)
         {
+            // Берем первый элемент
             var currentItem = craftingQueue[0];
             currentItem.timeRemaining -= Time.deltaTime;
 
+            // Обновляем визуал (таймер)
             UpdateQueueUI(0, currentItem);
 
             if (currentItem.timeRemaining <= 0)
@@ -70,9 +72,8 @@ public class WorldCraftingQueue : MonoBehaviour
 
     void CompleteCrafting(QueueItem item)
     {
-        // Выдача предмета
-        ItemData resultItem = Resources.Load<ItemData>("Items/" + item.recipe.outputResourceName);
-        if (resultItem == null) resultItem = Resources.Load<ItemData>(item.recipe.outputResourceName);
+        // Загружаем предмет для выдачи
+        ItemData resultItem = LoadItemData(item.recipe.outputResourceName);
 
         if (resultItem != null)
         {
@@ -84,8 +85,10 @@ public class WorldCraftingQueue : MonoBehaviour
             Debug.LogError($"Ошибка крафта: Не найден предмет '{item.recipe.outputResourceName}'");
         }
 
+        // Удаляем из данных
         craftingQueue.RemoveAt(0);
 
+        // Удаляем из UI
         if (uiObjects.Count > 0)
         {
             Destroy(uiObjects[0]);
@@ -102,39 +105,57 @@ public class WorldCraftingQueue : MonoBehaviour
         GameObject obj = Instantiate(queueItemPrefab, queueUIContainer);
         uiObjects.Add(obj);
 
-        // 1. НАСТРОЙКА КОЛИЧЕСТВА (ИСПРАВЛЕНИЕ)
+        // --- ВАЖНОЕ ДОБАВЛЕНИЕ: СБРОС ТРАНСФОРМА ---
+        // Чтобы объект не улетал в космос и имел нормальный размер
+        obj.transform.localScale = Vector3.one; 
+        obj.transform.localPosition = Vector3.zero;
+        // -------------------------------------------
+
+        // Пытаемся найти слот UI скрипт
         var slotUI = obj.GetComponent<ResourceSlotUI>();
+        
+        // 1. НАХОДИМ ИКОНКУ (через загрузку Result Item)
+        ItemData resultItem = LoadItemData(item.recipe.outputResourceName);
+        Sprite correctIcon = (resultItem != null) ? resultItem.Icon : null;
+
+        // Если в ItemData иконки нет, пробуем взять из рецепта (резерв)
+        if (correctIcon == null) correctIcon = item.recipe.icon;
+
+        // 2. ПРИМЕНЯЕМ ДАННЫЕ В СЛОТ
         if (slotUI != null)
         {
-            // Используем метод из скрипта слота (он сам разберется с цветом и видимостью)
-            slotUI.UpdateAmount(item.recipe.outputAmount);
+            // Используем штатный метод обновления слота
+            slotUI.UpdateSlot(item.recipe.recipeName, correctIcon, item.recipe.outputAmount, null);
+            
+            // Настраиваем иконку под таймер (Radial Fill)
+            if (slotUI.iconImage != null)
+            {
+                slotUI.iconImage.type = Image.Type.Filled;
+                slotUI.iconImage.fillMethod = Image.FillMethod.Radial360;
+                slotUI.iconImage.fillOrigin = (int)Image.Origin360.Top;
+                slotUI.iconImage.fillAmount = 1f; 
+            }
         }
         else
         {
-            // Fallback: ищем текст вручную, если скрипта нет
+            // Fallback: Ручная настройка
+            Transform iconTr = obj.transform.Find("Icon");
+            Image icon = (iconTr != null) ? iconTr.GetComponent<Image>() : obj.GetComponent<Image>();
+
+            if (icon != null && correctIcon != null)
+            {
+                icon.sprite = correctIcon;
+                icon.enabled = true;
+                icon.type = Image.Type.Filled; 
+                icon.fillMethod = Image.FillMethod.Radial360;
+                icon.fillAmount = 1f; 
+                
+                // Убедимся, что цвет белый (не прозрачный)
+                icon.color = Color.white; 
+            }
+
             var txt = obj.GetComponentInChildren<Text>();
             if (txt != null) txt.text = item.recipe.outputAmount.ToString();
-        }
-
-        // 2. НАСТРОЙКА ИКОНКИ (ТАЙМЕР)
-        Image icon = null;
-
-        // Ищем иконку (сначала вложенную, потом компонент, потом любую)
-        Transform iconTr = obj.transform.Find("Icon");
-        if (iconTr != null) icon = iconTr.GetComponent<Image>();
-        
-        if (icon == null && slotUI != null) icon = slotUI.iconImage;
-        if (icon == null) icon = obj.GetComponent<Image>();
-
-        // Применяем спрайт и включаем режим заполнения
-        if (icon != null && item.recipe.icon != null)
-        {
-            icon.sprite = item.recipe.icon;
-            icon.enabled = true;
-            
-            icon.type = Image.Type.Filled; 
-            icon.fillMethod = Image.FillMethod.Radial360;
-            icon.fillAmount = 1f; 
         }
     }
 
@@ -145,21 +166,34 @@ public class WorldCraftingQueue : MonoBehaviour
         GameObject obj = uiObjects[index];
         if (obj == null) return;
 
-        // Ищем ту же иконку для обновления таймера
+        // Ищем иконку для обновления заливки
         Image icon = null;
-        Transform iconTr = obj.transform.Find("Icon");
-        if (iconTr != null) icon = iconTr.GetComponent<Image>();
         
-        if (icon == null)
+        var slotUI = obj.GetComponent<ResourceSlotUI>();
+        if (slotUI != null) 
         {
-             var slotUI = obj.GetComponent<ResourceSlotUI>();
-             if (slotUI != null) icon = slotUI.iconImage;
+            icon = slotUI.iconImage;
+        }
+        else
+        {
+            Transform iconTr = obj.transform.Find("Icon");
+            if (iconTr != null) icon = iconTr.GetComponent<Image>();
+            if (icon == null) icon = obj.GetComponent<Image>();
         }
 
         if (icon != null)
         {
+            // Прогресс убывает (1.0 -> 0.0)
             float progress = item.timeRemaining / item.duration;
             icon.fillAmount = progress;
         }
+    }
+
+    // Вспомогательный метод загрузки
+    private ItemData LoadItemData(string itemName)
+    {
+        ItemData item = Resources.Load<ItemData>("Items/" + itemName);
+        if (item == null) item = Resources.Load<ItemData>(itemName);
+        return item;
     }
 }

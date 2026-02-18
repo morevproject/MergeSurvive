@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b517222f5658754691e88b4aac76fcc, type: 3}
+  m_Name: Old_Battery_Recipe
+  m_EditorClassIdentifier: 
+  recipeID: Old_Battery_Recipe
+  recipeName: 
+  description: 
+  icon: {fileID: 21300000, guid: 3164bd194fa9ae949aa8af607cc57c19, type: 3}
+  itemTier: 0
+  category: 0
+  requiredWorkbenchTier: 1
+  requiredIngredients: []
+  outputResourceName: Old_Battery
+  outputAmount: 1
+  outputPrefab: {fileID: 0}
+  isBaseResource: 1
+  isDiscovered: 0

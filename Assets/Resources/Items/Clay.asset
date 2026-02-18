@@ -14,15 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ItemName: Clay
   DisplayName: "\u0413\u043B\u0438\u043D\u0430"
-  Description: 
-  Icon: {fileID: 21300000, guid: 2585b6b70253049468c0e4276871620d, type: 3}
+  Description: "\u041C\u044F\u0433\u043A\u0430\u044F \u0438 \u0442\u0430\u043A\u0430\u044F
+    \u043F\u043E\u0434\u0434\u0430\u0442\u043B\u0438\u0432\u0430\u044F!\n\n\u041C\u043E\u0436\u043D\u043E
+    \u0441\u043B\u0435\u043F\u0438\u0442\u044C \u043D\u0435\u043C\u0430\u043B\u043E
+    \u0438\u043D\u0442\u0435\u0440\u0435\u0441\u043D\u043E\u0433\u043E!"
+  Icon: {fileID: 21300000, guid: c6643b5f10b31254798c815559131c07, type: 3}
   itemType: 0
   toolType: 0
   requiresAmmo: 0
   IsStackable: 1
   MaxStackSize: 99
   minDamage: 1
-  maxDamage: 3
-  attackRange: 2
+  maxDamage: 1
+  attackRange: 1
   armorValue: 0
   healAmount: 0

@@ -1,83 +1,109 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerEquipmentVisuals : MonoBehaviour
 {
-    [Header("Melee Weapons")]
-    public GameObject swordModel;   
+    public static PlayerEquipmentVisuals Instance;
 
-    [Header("Tools")]
-    public GameObject axeModel;     
-    public GameObject pickaxeModel; 
-    public GameObject shovelModel; // <--- НОВОЕ ПОЛЕ
+    [System.Serializable]
+    public class ItemVisual
+    {
+        public string itemID;       // Имя предмета из ItemData (например "Scrap_Axe")
+        public GameObject model;    // Ссылка на объект в руке
+    }
 
-    [Header("Ranged Weapons")]
-    public GameObject bowModel;     
+    [Header("Weapon Models (Right Hand)")]
+    public List<ItemVisual> weaponModels; // Сюда добавляй мечи, дубинки, луки
 
-    // Запоминаем, что у нас реально надето, чтобы вернуть после рубки
-    private ItemData currentEquippedItem;
+    [Header("Tool Models (Right Hand - Temporary)")]
+    public List<ItemVisual> toolModels;   // Сюда добавляй топоры, кирки, лопаты
 
-    // 1. Этот метод вызывается из UI слота (когда одеваем/снимаем)
+    [Header("Armor Models (Body)")]
+    public List<ItemVisual> armorModels;  // Сюда добавляй броню
+
+    // Запоминаем текущее оружие, чтобы вернуть его после рубки дерева
+    private string currentWeaponID;
+
+    private void Awake()
+    {
+        Instance = this;
+        HideAll();
+    }
+
+    // 1. ВЫЗЫВАЕТСЯ ИЗ СЛОТА (когда переодеваемся)
+    // Заменил аргумент с ItemData на string для гибкости, но можно и перегрузку оставить
     public void UpdateWeaponVisuals(ItemData item)
     {
-        currentEquippedItem = item;
+        currentWeaponID = (item != null) ? item.ItemName : "";
         RefreshVisuals();
     }
 
-    // Внутренний метод обновления (показывает только оружие, прячет инструменты)
-    private void RefreshVisuals()
+    // Обновляем постоянный визуал (Оружие + Броня)
+    public void RefreshVisuals()
     {
-        // Сначала всё выключаем
-        HideAll();
-
-        if (currentEquippedItem == null) return;
-
-        switch (currentEquippedItem.ItemName)
+        HideAllWeapons();
+        
+        // Включаем оружие
+        if (!string.IsNullOrEmpty(currentWeaponID))
         {
-            // Оружие показываем ВСЕГДА
-            case "Sword":
-            case "Iron Sword":
-                if (swordModel != null) swordModel.SetActive(true);
-                break;
-            
-            case "Bow":
-            case "Wooden Bow":
-                if (bowModel != null) bowModel.SetActive(true);
-                break;
-
-            // Инструменты НЕ показываем (они в "кармане")
+            ItemVisual vis = weaponModels.Find(x => x.itemID == currentWeaponID);
+            if (vis != null && vis.model != null) vis.model.SetActive(true);
         }
+
+        // Броня обновляется отдельно, обычно из PlayerProfileUI
+        // Если хочешь обновлять её здесь, нужно передавать ID брони в этот метод
     }
 
-    // 2. ВРЕМЕННЫЙ метод: вызывай его из скрипта сбора ресурсов (InteractionUIManager)
-    public void ShowToolTemporarily(string toolType, float duration)
+    public void EquipArmor(string armorID)
     {
-        StartCoroutine(ToolAnimationRoutine(toolType, duration));
+        HideAllArmor();
+        if (string.IsNullOrEmpty(armorID)) return;
+
+        ItemVisual vis = armorModels.Find(x => x.itemID == armorID);
+        if (vis != null && vis.model != null) vis.model.SetActive(true);
     }
 
-    private IEnumerator ToolAnimationRoutine(string toolType, float duration)
+    // 2. ВРЕМЕННЫЙ ИНСТРУМЕНТ (для сбора ресурсов)
+    // Теперь принимаем КОНКРЕТНЫЙ ID (например "Cyber_Axe"), а не абстрактный тип
+    public void ShowToolTemporarily(string itemID, float duration)
     {
-        // 1. Прячем текущее оружие (меч/лук)
-        HideAll();
+        StartCoroutine(ToolAnimationRoutine(itemID, duration));
+    }
 
-        // 2. Показываем нужный инструмент
-        if (toolType == "Axe" && axeModel != null) axeModel.SetActive(true);
-        if (toolType == "Pickaxe" && pickaxeModel != null) pickaxeModel.SetActive(true);
-        if (toolType == "Shovel" && shovelModel != null) shovelModel.SetActive(true); // <--- ЛОПАТА
+    private IEnumerator ToolAnimationRoutine(string itemID, float duration)
+    {
+        // 1. Прячем оружие
+        HideAllWeapons();
+        HideAllTools();
 
-        // 3. Ждем пока пройдет анимация удара
+        // 2. Ищем и включаем нужный инструмент
+        ItemVisual tool = toolModels.Find(x => x.itemID == itemID);
+        if (tool != null && tool.model != null)
+        {
+            tool.model.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning($"[Visuals] Не найдена модель инструмента для: {itemID}");
+        }
+
+        // 3. Ждем
         yield return new WaitForSeconds(duration);
 
-        // 4. Возвращаем всё как было (меч, лук или пустые руки)
+        // 4. Прячем инструмент и возвращаем оружие
+        HideAllTools();
         RefreshVisuals();
     }
 
     private void HideAll()
     {
-        if (swordModel != null) swordModel.SetActive(false);
-        if (axeModel != null) axeModel.SetActive(false);
-        if (pickaxeModel != null) pickaxeModel.SetActive(false);
-        if (shovelModel != null) shovelModel.SetActive(false); // <--- ПРЯЧЕМ ЛОПАТУ
-        if (bowModel != null) bowModel.SetActive(false);
+        HideAllWeapons();
+        HideAllTools();
+        HideAllArmor();
     }
+
+    private void HideAllWeapons() { foreach (var v in weaponModels) if (v.model != null) v.model.SetActive(false); }
+    private void HideAllTools() { foreach (var v in toolModels) if (v.model != null) v.model.SetActive(false); }
+    private void HideAllArmor() { foreach (var v in armorModels) if (v.model != null) v.model.SetActive(false); }
 }

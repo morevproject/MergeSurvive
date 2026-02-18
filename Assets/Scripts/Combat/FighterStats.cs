@@ -1,12 +1,10 @@
 using UnityEngine;
-using System; // Нужно для Action
+using System; 
 using System.Collections;
 
 public class FighterStats : MonoBehaviour
 {
-    // --- НОВОЕ: Событие, чтобы UI (HealthBar) знал, когда обновиться ---
     public event Action<int> OnHealthChanged;
-    // ------------------------------------------------------------------
 
     [Header("Base Stats")]
     public string unitName = "Unit";
@@ -17,6 +15,9 @@ public class FighterStats : MonoBehaviour
     public int maxDamage = 2;
     public float attackRange = 2.0f; 
     
+    [Header("Defense")]
+    public int baseArmor = 0; 
+
     [Header("Current State")]
     public int currentHealth;
     public bool isDead = false;
@@ -24,7 +25,6 @@ public class FighterStats : MonoBehaviour
     private void Start()
     {
         currentHealth = maxHealth;
-        // Сообщаем всем подписчикам начальное здоровье
         OnHealthChanged?.Invoke(currentHealth);
     }
 
@@ -35,37 +35,30 @@ public class FighterStats : MonoBehaviour
 
     public void UpdateWeaponStats(int min, int max, float range) 
     {
-        if (max <= 0)
-        {
-            minDamage = 1;
-            maxDamage = 2;
-            attackRange = 2.0f; 
-        }
-        else
-        {
-            minDamage = min;
-            maxDamage = max;
-            attackRange = range > 0 ? range : 2.0f; 
-        }
-        Debug.Log($"[FighterStats] Статы обновлены. Урон: {min}-{max}, Дальность: {attackRange}");
+        if (max <= 0) { minDamage = 1; maxDamage = 2; attackRange = 2.0f; }
+        else { minDamage = min; maxDamage = max; attackRange = range > 0 ? range : 2.0f; }
     }
 
-    public void TakeDamage(int dmg)
+    // Метод теперь чистый и универсальный.
+    // Для Игрока: сюда приходит уже уменьшенный урон из PlayerStats.
+    // Для Мобов: сюда приходит полный урон, и мы вычитаем baseArmor.
+    public virtual void TakeDamage(int incomingDamage)
     {
         if (isDead) return;
 
-        currentHealth -= dmg;
+        int finalDamage = incomingDamage;
 
-        // --- 1. Вылетающая цифра урона ---
-        // Используем переменную dmg, которая пришла в аргументы
-        DamagePopup.Create(transform.position + Vector3.up * 2f, dmg); 
-        // ---------------------------------
+        // Если это НЕ игрок (обычный моб), применяем простую плоскую броню
+        // (Для игрока baseArmor обычно 0, так что это не повредит)
+        finalDamage = Mathf.Max(0, finalDamage - baseArmor);
 
-        // --- 2. Уведомляем полоску здоровья ---
+        currentHealth -= finalDamage;
+
+        // ВИЗУАЛ
+        if (finalDamage > 0) DamagePopup.Create(transform.position + Vector3.up * 2f, finalDamage);
+        else DamagePopup.Create(transform.position + Vector3.up * 2f, 0);
+
         OnHealthChanged?.Invoke(currentHealth);
-        // -------------------------------------
-
-        Debug.Log($"<color=red>{unitName} получил {dmg} урона. Осталось: {currentHealth}</color>");
 
         if (currentHealth <= 0)
         {
@@ -74,26 +67,12 @@ public class FighterStats : MonoBehaviour
         }
     }
 
-    public void Heal(int amount)
+    public virtual void Heal(int amount)
     {
         if (isDead) return;
         currentHealth += amount;
         if (currentHealth > maxHealth) currentHealth = maxHealth;
-        
-        // Уведомляем полоску здоровья при лечении
         OnHealthChanged?.Invoke(currentHealth);
-        
-        Debug.Log($"<color=green>{unitName} исцелился на {amount}.</color>");
-    }
-
-    public void ApplyBurn(int damagePerRound, int durationRounds)
-    {
-        StartCoroutine(BurnRoutine(damagePerRound, durationRounds));
-    }
-
-    private IEnumerator BurnRoutine(int dmg, int rounds)
-    {
-        yield return null; 
     }
 
     protected virtual void Die()

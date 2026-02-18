@@ -14,15 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ItemName: Wooden_Bow
   DisplayName: "\u0414\u0435\u0440\u0435\u0432\u044F\u043D\u043D\u044B\u0439 \u041B\u0443\u043A"
-  Description: 
-  Icon: {fileID: 21300000, guid: 9559e32c3fe032f42ba74ec208aa4d9c, type: 3}
+  Description: "\u0414\u043B\u044F \u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u043E\u0439\u0434\u0451\u0442.\n\n\u041D\u0430\u043D\u043E\u0441\u0438\u0442
+    <color=green>4-6 \u0443\u0440\u043E\u043D\u0430</color>."
+  Icon: {fileID: 21300000, guid: cbb7ddd49634d83438dc70f4b07a0f8f, type: 3}
   itemType: 2
   toolType: 4
   requiresAmmo: 1
   IsStackable: 1
   MaxStackSize: 99
-  minDamage: 10
-  maxDamage: 15
+  minDamage: 4
+  maxDamage: 6
   attackRange: 12
   armorValue: 0
   healAmount: 0
