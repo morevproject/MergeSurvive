@@ -98,6 +98,8 @@ public class WorldCraftingQueue : MonoBehaviour
 
     // --- ВИЗУАЛИЗАЦИЯ ---
 
+    // --- ВИЗУАЛИЗАЦИЯ ---
+
     void CreateQueueUI(QueueItem item)
     {
         if (queueUIContainer == null || queueItemPrefab == null) return;
@@ -105,11 +107,20 @@ public class WorldCraftingQueue : MonoBehaviour
         GameObject obj = Instantiate(queueItemPrefab, queueUIContainer);
         uiObjects.Add(obj);
 
-        // --- ВАЖНОЕ ДОБАВЛЕНИЕ: СБРОС ТРАНСФОРМА ---
+        // --- СБРОС ТРАНСФОРМА ---
         // Чтобы объект не улетал в космос и имел нормальный размер
         obj.transform.localScale = Vector3.one; 
         obj.transform.localPosition = Vector3.zero;
-        // -------------------------------------------
+
+        // --- ИСПРАВЛЕНИЕ БАГА 1: ОТКЛЮЧАЕМ ЛИШНЮЮ ИНТЕРАКТИВНОСТЬ ---
+        // Отключаем перетаскивание
+        var draggable = obj.GetComponent<UIDraggableItem>();
+        if (draggable != null) draggable.enabled = false;
+
+        // Отключаем клик (чтобы не открывалось окно деталей предмета)
+        var button = obj.GetComponent<Button>();
+        if (button != null) button.enabled = false;
+        // -----------------------------------------------------------
 
         // Пытаемся найти слот UI скрипт
         var slotUI = obj.GetComponent<ResourceSlotUI>();

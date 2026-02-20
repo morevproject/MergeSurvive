@@ -18,8 +18,6 @@ public class AvatarDropZone : MonoBehaviour, IDropHandler, IPointerEnterHandler,
     // 2. Основной метод сброса
     public void OnDrop(PointerEventData eventData)
     {
-        // Debug.Log(">>> СОБЫТИЕ OnDrop СРАБОТАЛО!"); // Можно закомментировать
-
         if (eventData.pointerDrag == null) return;
 
         UIDraggableItem droppedItem = eventData.pointerDrag.GetComponent<UIDraggableItem>();
@@ -27,7 +25,11 @@ public class AvatarDropZone : MonoBehaviour, IDropHandler, IPointerEnterHandler,
         if (droppedItem == null || droppedItem.currentSlot == null) return;
 
         ItemData item = droppedItem.currentSlot.itemData;
-        // Debug.Log($"Пытаемся съесть: {item.ItemName}, Тип: {item.itemType}");
+        
+        // --- ФИКС БАГА: ПРОВЕРКА НА РЕЦЕПТЫ (ПУСТЫЕ ITEMDATA) ---
+        // Если item пустой (например, мы кинули Душу-рецепт), просто прерываем работу
+        if (item == null) return; 
+        // --------------------------------------------------------
 
         if (item.itemType == ItemType.Food)
         {

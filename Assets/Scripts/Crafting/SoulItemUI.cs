@@ -69,7 +69,6 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
         if (lockedOverlay != null) lockedOverlay.SetActive(locked);
         if (icon != null) icon.color = locked ? Color.gray : Color.white;
 
-        // --- ГЛАВНОЕ ИЗМЕНЕНИЕ ---
         // Если заперто — отключаем компонент перетаскивания!
         if (dragComponent != null)
         {
@@ -85,9 +84,15 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-        if (CraftingPanel.Instance != null)
+        // --- ИЗМЕНЕНИЕ: ОТКРЫВАЕМ НОВОЕ ОКНО ---
+        if (CraftingDetailsUI.Instance != null)
         {
-            CraftingPanel.Instance.SelectRecipe(myRecipe);
+            CraftingDetailsUI.Instance.ShowRecipe(myRecipe);
         }
+        else
+        {
+            Debug.LogError("CraftingDetailsUI не найден на сцене! Проверь GameManager.");
+        }
+        // ----------------------------------------
     }
 }

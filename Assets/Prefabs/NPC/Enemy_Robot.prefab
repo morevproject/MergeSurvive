@@ -113,7 +113,7 @@ MonoBehaviour:
     maxAmount: 7
   - name: "\u0421\u0442\u0430\u0440\u0430\u044F \u0431\u0430\u0442\u0430\u0440\u0435\u0439\u043A\u0430"
     item: {fileID: 11400000, guid: d17d3613b03708b4994a8f3073567aaa, type: 2}
-    dropChance: 0.2
+    dropChance: 20
     minAmount: 1
     maxAmount: 1
   changeDirectionTime: 3
