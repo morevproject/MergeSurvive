@@ -2,8 +2,13 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Настройки движения")]
     public float moveSpeed = 5f;
     public Camera playerCamera;
+
+    [Header("Визуал (Матрешка)")]
+    public Transform characterModel; // <--- НОВОЕ ПОЛЕ! СЮДА ПЕРЕТАЩИМ Model_Pivot
+
     private Rigidbody rb; // Ссылка на физическое тело
 
     void Start()
@@ -25,7 +30,8 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         // Если игра не в состоянии "Playing" (например, открыт инвентарь) - блокируем ввод
-        if (GameStateManager.Instance.CurrentState != GameStateManager.GameState.Playing)
+        // (Добавил проверку на null на всякий случай, чтобы избежать ошибок при загрузке)
+        if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentState != GameStateManager.GameState.Playing)
         {
             // Сбрасываем скорость, чтобы персонаж не скользил по инерции
             if (rb != null)
@@ -60,7 +66,7 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 moveDirection = (cameraForward * verticalInput) + (cameraRight * horizontalInput);
         
-        // Нормализация нужна, чтобы по диагонали не бежал быстрее (но джойстик это обычно сам делает)
+        // Нормализация нужна, чтобы по диагонали не бежал быстрее
         if (moveDirection.magnitude > 1f) moveDirection.Normalize();
 
         // Применяем физическую силу (Velocity)
@@ -68,9 +74,19 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.velocity = new Vector3(moveDirection.x * moveSpeed, rb.velocity.y, moveDirection.z * moveSpeed);
             
-            // Опционально: поворот персонажа в сторону движения
+            // МАГИЯ ВРАЩЕНИЯ:
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+
+            if (characterModel != null)
+            {
+                // Если мы назначили нашу ровную пустышку - крутим только её!
+                characterModel.rotation = Quaternion.Slerp(characterModel.rotation, targetRotation, Time.deltaTime * 10f);
+            }
+            else
+            {
+                // Старый метод (оставил на всякий случай)
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+            }
         }
         else
         {

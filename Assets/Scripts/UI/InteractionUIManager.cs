@@ -1,3 +1,4 @@
+using System.Collections; // Обязательно для работы корутин
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +9,11 @@ public class InteractionUIManager : MonoBehaviour
     [SerializeField] private GameObject interactButton; 
     [SerializeField] private Text interactText;         
 
+    [Header("Настройки анимации")]
+    public float gatherDelay = 3.15f; // Та самая задержка под идеальный кадр
+
     private WorldInteractable currentInteractable;
+    private bool isGathering = false; // Защита от спама кнопкой
 
     private void Awake()
     {
@@ -27,6 +32,9 @@ public class InteractionUIManager : MonoBehaviour
             }
         }
         
+        // Если уже собираем предмет, не переключаемся на другой
+        if (isGathering) return; 
+        
         if (interactButton == null) return;
 
         currentInteractable = interactable;
@@ -35,17 +43,46 @@ public class InteractionUIManager : MonoBehaviour
 
     public void HideInteraction()
     {
+        // Блокируем сброс таргета, если анимация уже началась
+        if (isGathering) return; 
+        
         currentInteractable = null; 
         if (interactButton != null) interactButton.SetActive(false);
     }
 
     public void OnInteractButtonPressed()
     {
-        if (currentInteractable != null)
+        // Проверяем, что таргет есть и мы еще не в процессе сбора
+        if (currentInteractable != null && !isGathering)
         {
-            PlayGatheringEffects();
+            StartCoroutine(GatherWithDelayRoutine());
         }
-        InteractionHandler.Instance.InteractWithCurrentTarget();
+    }
+
+    // ТА САМАЯ МАГИЯ ЗАДЕРЖКИ
+    private IEnumerator GatherWithDelayRoutine()
+    {
+        isGathering = true; // Включаем блокировку
+        
+        // 1. Мгновенно прячем кнопку, чтобы игрок не тыкал дважды
+        if (interactButton != null) interactButton.SetActive(false);
+
+        // 2. Запускаем анимацию на персонаже (мальчик начинает приседать)
+        PlayGatheringEffects();
+
+        // 3. Ставим код на паузу и ждем, пока рука коснется земли
+        yield return new WaitForSeconds(gatherDelay);
+
+        // 4. Рука на земле! Физически "бьем" предмет, он удаляется, 
+        // добавляется в инвентарь и запускает диалог Няни
+        if (InteractionHandler.Instance != null)
+        {
+            InteractionHandler.Instance.InteractWithCurrentTarget();
+        }
+
+        // 5. Завершаем процесс и снимаем блокировку
+        isGathering = false;
+        HideInteraction();
     }
 
     private void PlayGatheringEffects()
@@ -53,31 +90,20 @@ public class InteractionUIManager : MonoBehaviour
         var playerVisuals = PlayerEquipmentVisuals.Instance;
         var playerAnim = FindObjectOfType<PlayerAnimation>();
 
-        // 1. ОПРЕДЕЛЯЕМ ТИП ИНСТРУМЕНТА (чтобы знать, где искать)
-        string neededToolType = "Axe"; 
-        string targetName = currentInteractable.gameObject.name;
-        
-        if (targetName.Contains("Rock") || targetName.Contains("Stone") || targetName.Contains("Ore"))
-        {
-            neededToolType = "Pickaxe";
-        }
-        else if (targetName.Contains("Dirt") || targetName.Contains("Clay") || targetName.Contains("Mound") || targetName.Contains("Земл"))
-        {
-            neededToolType = "Shovel";
-        }
+        // 1. БЕРЕМ ТИП ИНСТРУМЕНТА ИЗ НАСТРОЕК САМОГО ОБЪЕКТА!
+        // (Больше не гадаем по имени. Что указано в префабе ресурса, то и требуем)
+        string neededToolType = currentInteractable.requiredToolType;
+        if (string.IsNullOrEmpty(neededToolType)) neededToolType = "None";
 
-        // 2. ИЩЕМ КОНКРЕТНОЕ ИМЯ ПРЕДМЕТА В СЛОТАХ
-        // (Нам нужно не просто "Pickaxe", а "Scrap_Pickaxe" или "Cyber_Pickaxe")
+        // 2. ИЩЕМ КОНКРЕТНОЕ ИМЯ ПРЕДМЕТА В СЛОТАХ (если инструмент вообще нужен)
         string foundItemID = "";
         
-        if (PlayerProfileUI.Instance != null)
+        if (PlayerProfileUI.Instance != null && neededToolType != "None")
         {
-            // А. Проверяем оружие (вдруг держим инструмент как меч)
             if (CheckSlotForTool(PlayerProfileUI.Instance.weaponSlot, neededToolType)) 
             {
                 foundItemID = PlayerProfileUI.Instance.weaponSlot.currentItem.ItemName;
             }
-            // Б. Проверяем профильные слоты
             else if (neededToolType == "Axe" && CheckSlotForTool(PlayerProfileUI.Instance.axeSlot, "Axe")) 
             {
                 foundItemID = PlayerProfileUI.Instance.axeSlot.currentItem.ItemName;
@@ -91,23 +117,24 @@ public class InteractionUIManager : MonoBehaviour
                 foundItemID = PlayerProfileUI.Instance.shovelSlot.currentItem.ItemName;
             }
         }
-        // Fallback для тестов без UI (если нужно)
-        else 
-        {
-            // Тут мы не знаем имя, поэтому ничего не покажем, но анимацию сыграем
-        }
 
-        // 3. ВИЗУАЛИЗАЦИЯ
-        // Запускаем показ только если нашли КОНКРЕТНЫЙ предмет
+        // 3. ВИЗУАЛИЗАЦИЯ ИНСТРУМЕНТА
         if (playerVisuals != null && !string.IsNullOrEmpty(foundItemID))
         {
             playerVisuals.ShowToolTemporarily(foundItemID, 1.5f);
         }
 
-        // Анимацию руками играем всегда
+        // 4. УМНАЯ АНИМАЦИЯ (Бьем или Нагибаемся)
         if (playerAnim != null)
         {
-            playerAnim.TriggerGather();
+            if (neededToolType == "Axe" || neededToolType == "Pickaxe" || neededToolType == "Shovel")
+            {
+                playerAnim.TriggerAttack(); // Взмах инструментом
+            }
+            else
+            {
+                playerAnim.TriggerGather(); // Наклон (для "None")
+            }
         }
     }
 
