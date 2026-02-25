@@ -12,17 +12,14 @@ public class SaveManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            savePath = Path.Combine(Application.persistentDataPath, "gamesave.json");
-            LoadFileOnly();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        // 1. Гордо заявляем, что теперь мы - главный менеджер сохранений на этой сцене
+        Instance = this;
+        
+        // 2. Настраиваем путь к файлу (это нужно делать на каждой новой сцене)
+        savePath = Path.Combine(Application.persistentDataPath, "gamesave.json");
+        
+        // 3. Сразу читаем файл с жесткого диска в память
+        LoadFileOnly();
     }
 
     private void OnEnable()
@@ -95,6 +92,10 @@ public class SaveManager : MonoBehaviour
         string json = JsonUtility.ToJson(currentSave, true);
         File.WriteAllText(savePath, json);
         Debug.Log("Saved!");
+
+        // Добавь это, чтобы меню знало, на какой сцене мы сохранились:
+        PlayerPrefs.SetString("LastSavedScene", UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        PlayerPrefs.Save();
     }
 
     private void LoadFileOnly()

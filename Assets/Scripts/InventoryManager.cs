@@ -42,8 +42,7 @@ public class InventoryManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        Instance = this;
     }
 
     private void Start()
@@ -89,6 +88,12 @@ public class InventoryManager : MonoBehaviour
         if (CraftingManager.Instance != null) CraftingManager.Instance.CheckUnlocks(item);
 
         UpdateInventoryUI();
+
+        // Универсальные триггеры туториала (проверяем всё при любом пополнении инвентаря)
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.CheckGathering(); // Проверит палки и камни
+        }
     }
 
     public void RemoveItem(ItemData item, int quantity = 1)

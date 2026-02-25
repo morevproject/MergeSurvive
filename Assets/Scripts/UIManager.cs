@@ -26,8 +26,7 @@ public class UIManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
-        else { Destroy(gameObject); return; }
+        Instance = this;
     }
 
     void Start()
@@ -110,6 +109,9 @@ public class UIManager : MonoBehaviour
             InventoryPanel.SetActive(isActive);
             OnInventoryToggled?.Invoke(isActive);
 
+            //   “риггер тутора
+            if (isActive && TutorialManager.Instance != null) TutorialManager.Instance.TriggerUIOpened("Inventory");
+
             if (isActive && CraftingPanel != null) 
             {
                 CraftingPanel.SetActive(false);
@@ -130,6 +132,9 @@ public class UIManager : MonoBehaviour
 
             CraftingPanel.SetActive(isActive);
             OnCraftingToggled?.Invoke(isActive);
+
+            //   “риггер тутора
+            if (isActive && TutorialManager.Instance != null) TutorialManager.Instance.TriggerUIOpened("Crafting");
 
             if (isActive && InventoryPanel != null)
             {
@@ -165,6 +170,9 @@ public class UIManager : MonoBehaviour
             
             // ћеню закрыто Ч ищем деревь€ заново
             if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();
+
+            //   “риггер тутора
+            if (TutorialManager.Instance != null) TutorialManager.Instance.TriggerUIClosed();
         }
     }
 

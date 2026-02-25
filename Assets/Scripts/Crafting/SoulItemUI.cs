@@ -18,6 +18,8 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
     private bool isLocked = false;
     private int requiredTier = 1;
 
+    public bool isTutorialLocked = false; // Невидимая блокировка для обучения
+
     // Ссылка на скрипт перетаскивания (который уже есть у тебя)
     private UIDraggableItem dragComponent;
 
@@ -84,15 +86,32 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-        // --- ИЗМЕНЕНИЕ: ОТКРЫВАЕМ НОВОЕ ОКНО ---
+        // --- НОВОЕ: Игнорируем клик, если туториал запрещает ---
+        if (isTutorialLocked) return; 
+
         if (CraftingDetailsUI.Instance != null)
         {
             CraftingDetailsUI.Instance.ShowRecipe(myRecipe);
+            
+            if (TutorialManager.Instance != null && itemData != null)
+            {
+                TutorialManager.Instance.OnRecipeClicked(itemData.ItemName);
+            }
         }
         else
         {
             Debug.LogError("CraftingDetailsUI не найден на сцене! Проверь GameManager.");
         }
-        // ----------------------------------------
+    }
+
+    public void SetTutorialState(bool isInteractive)
+    {
+        isTutorialLocked = !isInteractive;
+        
+        // Отключаем возможность перетаскивания, но ВИЗУАЛ (замок/цвет) не трогаем!
+        if (dragComponent != null)
+        {
+            dragComponent.enabled = isInteractive && !isLocked;
+        }
     }
 }

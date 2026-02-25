@@ -9,11 +9,11 @@ public class HintManager : MonoBehaviour
     public static HintManager Instance;
 
     [Header("Settings")]
-    public ItemData hintItem; // Используем только для иконки
+    public ItemData hintItem;
 
     [Header("Visuals")]
     public GameObject flyingIconPrefab; 
-    public Transform animationParent; // Canvas
+    public Transform animationParent; 
     public Transform soulsContentParent; 
 
     [Header("UI Main")]
@@ -47,25 +47,15 @@ public class HintManager : MonoBehaviour
         if (shopPanel != null) shopPanel.SetActive(false);
     }
 
-    void Start()
-    {
-        UpdateUI();
-    }
+    void Start() { UpdateUI(); }
 
-    // Подписываемся на обновление статов, чтобы текст обновлялся сам
     void OnEnable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated += UpdateUI; }
     void OnDisable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; }
-
-    void Update()
-    {
-        // На всякий случай дублируем в Update, если событие не дошло
-        UpdateUI();
-    }
+    void Update() { UpdateUI(); }
 
     public void UpdateUI()
     {
         if (hintCountText == null || PlayerStats.Instance == null) return;
-        // Берем количество из PlayerStats, а не инвентаря
         int count = PlayerStats.Instance.HintBulbs;
         hintCountText.text = count.ToString();
     }
@@ -74,7 +64,9 @@ public class HintManager : MonoBehaviour
     {
         if (isAnimating) return; 
         
-        // Проверяем валюту в PlayerStats
+        // 1. ЖЕСТКАЯ БЛОКИРОВКА: Выключаем кнопку от спама!
+        if (hintButton != null) hintButton.interactable = false;
+        
         if (PlayerStats.Instance != null && PlayerStats.Instance.HintBulbs > 0)
         {
             TryUseHint();
@@ -88,8 +80,16 @@ public class HintManager : MonoBehaviour
     private void TryUseHint()
     {
         Recipe recipe = FindKnownBasedRecipe();
-        if (recipe != null) StartCoroutine(AnimateHintRoutine(recipe));
-        else Debug.Log("Нет доступных комбинаций!");
+        if (recipe != null) 
+        {
+            StartCoroutine(AnimateHintRoutine(recipe));
+        }
+        else 
+        {
+            Debug.Log("Нет доступных комбинаций!");
+            // Возвращаем кнопку, если анимация не началась
+            if (hintButton != null) hintButton.interactable = true;
+        }
     }
 
     private Recipe FindKnownBasedRecipe()
@@ -126,12 +126,13 @@ public class HintManager : MonoBehaviour
     IEnumerator AnimateHintRoutine(Recipe recipe)
     {
         isAnimating = true;
+        // Запрещаем любые клики по инвентарю и слотам
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = false;
 
-        // 1. Списываем лампочку (валюту) и СОХРАНЯЕМСЯ
         if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
         SaveProgress();
 
+        // Если в слотах лежали НАСТОЯЩИЕ вещи игрока - возвращаем их в инвентарь
         ClearCraftingSlots();
         yield return new WaitForSeconds(0.1f);
 
@@ -162,10 +163,8 @@ public class HintManager : MonoBehaviour
                         if (resItem != null) { iconToFly = resItem.Icon; finalData = resItem; }
                     }
 
-                    // Используем hintItem.Icon как заглушку, если картинка не найдена
                     if (iconToFly == null && hintItem != null) iconToFly = hintItem.Icon; 
 
-                    // Ищем позицию души на верстаке
                     Vector3 startPos = GetSoulPositionOnWorkbench(ing.resourceName);
 
                     if (iconToFly != null)
@@ -178,18 +177,22 @@ public class HintManager : MonoBehaviour
                         if (finalData != null) targetSlot.SetItem(finalData);
                     }
                 }
-                else
-                {
-                    Debug.LogError("[HintManager] Не хватает свободных слотов для анимации!");
-                }
             }
         }
 
         yield return new WaitForSeconds(0.2f);
         CraftingManager.Instance.DiscoverRecipe(recipe); 
-        SaveProgress(); // Сохраняем открытие рецепта
+        SaveProgress();
 
+        // 2. ФИКС ЭКСПЛОЙТА: Молча испаряем предметы-подсказки из слотов!
+        foreach (var slot in craftingSlots) 
+        {
+            if (slot != null) slot.ClearSlot(); // Используем ClearSlot без возврата в инвентарь
+        }
+
+        // Включаем всё обратно
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
+        if (hintButton != null) hintButton.interactable = true;
         isAnimating = false;
     }
 
@@ -201,14 +204,10 @@ public class HintManager : MonoBehaviour
         foreach (Transform child in soulsContentParent)
         {
             SoulItemUI soulUI = child.GetComponent<SoulItemUI>();
-            
             if (soulUI != null)
             {
-                if (soulUI.itemData != null && soulUI.itemData.ItemName == resourceName)
-                    return child.position;
-                
-                if (soulUI.soulNameText != null && soulUI.soulNameText.text == resourceName)
-                     return child.position;
+                if (soulUI.itemData != null && soulUI.itemData.ItemName == resourceName) return child.position;
+                if (soulUI.soulNameText != null && soulUI.soulNameText.text == resourceName) return child.position;
             }
         }
         return fallbackPos; 
@@ -257,18 +256,20 @@ public class HintManager : MonoBehaviour
     }
 
     private void OpenShop() { if (shopPanel != null) shopPanel.SetActive(true); }
-    public void CloseShop() { if (shopPanel != null) shopPanel.SetActive(false); }
+    
+    public void CloseShop() 
+    { 
+        if (shopPanel != null) shopPanel.SetActive(false); 
+        // Разблокируем кнопку лампочки при закрытии магазина, если анимация не идет
+        if (!isAnimating && hintButton != null) hintButton.interactable = true;
+    }
 
     private void BuyPack(int amount)
     {
-        // Начисляем валюту напрямую
         if (PlayerStats.Instance != null) PlayerStats.Instance.AddBulbs(amount);
         SaveProgress();
         CloseShop();
     }
 
-    private void SaveProgress()
-    {
-        if (SaveManager.Instance != null) SaveManager.Instance.SaveGame();
-    }
+    private void SaveProgress() { if (SaveManager.Instance != null) SaveManager.Instance.SaveGame(); }
 }
