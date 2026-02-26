@@ -2900,7 +2900,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1360710638464147182, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
       propertyPath: moveSpeed
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 1360710638464147182, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
       propertyPath: playerCamera
@@ -3574,6 +3574,10 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 454989727}
+    - target: {fileID: 7114858927307415031, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7261938178266040480, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 

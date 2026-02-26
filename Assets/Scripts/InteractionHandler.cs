@@ -24,6 +24,13 @@ public class InteractionHandler : MonoBehaviour
             return;
         }
 
+        // --- ФИКС 3: ЗАМОРОЗКА РАДАРА ---
+        // Если проигрывается анимация сбора, вообще не проверяем дистанцию!
+        if (InteractionUIManager.Instance != null && InteractionUIManager.Instance.isGathering)
+        {
+            return;
+        }
+
         if (currentTarget != null)
         {
             if (currentTarget.gameObject == null || !currentTarget.gameObject.activeInHierarchy)

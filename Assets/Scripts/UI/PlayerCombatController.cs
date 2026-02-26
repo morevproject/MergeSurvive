@@ -4,7 +4,6 @@ using UnityEngine.UI;
 public class PlayerCombatController : MonoBehaviour
 {
     [Header("UI")]
-    // Мы убрали AddListener, поэтому переменная кнопки нужна только для скрытия/показа
     public GameObject attackButtonObject; 
 
     [Header("Settings")]
@@ -18,16 +17,11 @@ public class PlayerCombatController : MonoBehaviour
     public PlayerAnimation playerAnim;
 
     private bool isAttackRequested = false;
-
     private Transform currentTarget; 
 
     void Start()
     {
         if (attackButtonObject != null) attackButtonObject.SetActive(false);
-        
-        // --- УБРАЛИ ЭТУ СТРОКУ ---
-        // if (attackButton != null) attackButton.onClick.AddListener(StartAttackSequence);
-        // -------------------------
     }
 
     void OnDisable()
@@ -42,7 +36,6 @@ public class PlayerCombatController : MonoBehaviour
 
     void FindNearestEnemy()
     {
-        // --- ФИКС: Если открыто Меню, мы прячем кнопку и не ищем врагов ---
         if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen)
         {
             currentTarget = null;
@@ -81,45 +74,66 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
-    // --- СДЕЛАЛИ PUBLIC (чтобы видеть в Инспекторе) ---
-    public void StartAttackSequence()
+    // === НОВЫЙ МЕТОД ДЛЯ ПОВОРОТА МОДЕЛЬКИ ===
+    private void FaceTarget()
     {
-        // На всякий случай защита: если кнопки нет на экране - не бьем
-        if (attackButtonObject != null && !attackButtonObject.activeSelf) return;
-
         if (currentTarget == null) return;
-
-        // 2. ВЗВОДИМ ФЛАГ: "Мы реально хотим ударить"
-        isAttackRequested = true;
         
-        transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
-
-        if (playerAnim != null) 
+        PlayerMovement pm = GetComponent<PlayerMovement>();
+        if (pm != null && pm.characterModel != null)
         {
-            playerAnim.TriggerAttack();
+            // Поворачиваем саму модельку, сохраняя её высоту
+            pm.characterModel.LookAt(new Vector3(currentTarget.position.x, pm.characterModel.position.y, currentTarget.position.z));
+        }
+        else
+        {
+            // Резервный вариант (крутим капсулу)
+            transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
         }
     }
 
-    // Этот метод вызывает анимация (Animation Event)
+    public void StartAttackSequence()
+    {
+        if (attackButtonObject != null && !attackButtonObject.activeSelf) return;
+        if (currentTarget == null) return;
+
+        isAttackRequested = true;
+        
+        FaceTarget(); // <--- Разворачиваемся ПЕРЕД началом анимации
+
+        bool isRanged = false;
+        if (PlayerProfileUI.Instance != null && PlayerProfileUI.Instance.weaponSlot.currentItem != null)
+        {
+            isRanged = PlayerProfileUI.Instance.weaponSlot.currentItem.requiresAmmo;
+        }
+
+        if (playerAnim != null) 
+        {
+            if (isRanged)
+            {
+                playerAnim.animator.SetTrigger("doShoot"); 
+            }
+            else
+            {
+                playerAnim.TriggerAttack();
+            }
+        }
+    }
+
     public void ExecuteAttackLogic()
     {
         if (!this.enabled) return;
 
-        // 3. ПРОВЕРЯЕМ ФЛАГ
-        // Если флаг false — значит, этот ивент прилетел из анимации Сбора (или другой), 
-        // а не по нажатию кнопки Атаки. ИГНОРИРУЕМ ЕГО.
         if (!isAttackRequested) 
         {
-            // Debug.Log("Игнорирую атаку: кнопка не была нажата (скорее всего, рубим дерево)");
             return;
         }
 
-        // СБРАСЫВАЕМ ФЛАГ (чтобы следующий случайный ивент снова не сработал)
         isAttackRequested = false;
 
         if (currentTarget == null || PlayerProfileUI.Instance == null) return;
         
-        transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
+        FaceTarget(); // <--- Еще раз корректируем прицел В МОМЕНТ выстрела/удара
 
         ItemData weapon = PlayerProfileUI.Instance.weaponSlot.currentItem;
         ItemData ammo = PlayerProfileUI.Instance.ammoSlot.currentItem;

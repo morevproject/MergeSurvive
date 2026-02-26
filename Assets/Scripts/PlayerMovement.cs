@@ -7,46 +7,40 @@ public class PlayerMovement : MonoBehaviour
     public Camera playerCamera;
 
     [Header("Визуал (Матрешка)")]
-    public Transform characterModel; // <--- НОВОЕ ПОЛЕ! СЮДА ПЕРЕТАЩИМ Model_Pivot
+    public Transform characterModel; 
 
-    private Rigidbody rb; // Ссылка на физическое тело
+    // === НОВЫЙ РУБИЛЬНИК ДЛЯ БЛОКИРОВКИ ===
+    [HideInInspector] public bool canMove = true; 
+
+    private Rigidbody rb;
 
     void Start()
     {
-        // Кэшируем ссылку на Rigidbody при старте (это эффективнее)
         rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            Debug.LogError("PlayerMovement: No Rigidbody found on Player!");
-        }
-
-        // Если камеру не назначили вручную, берём главную
-        if (playerCamera == null)
-        {
-            playerCamera = Camera.main;
-        }
+        if (rb == null) Debug.LogError("PlayerMovement: No Rigidbody found!");
+        if (playerCamera == null) playerCamera = Camera.main;
     }
 
     void Update()
     {
-        // Если игра не в состоянии "Playing" (например, открыт инвентарь) - блокируем ввод
-        // (Добавил проверку на null на всякий случай, чтобы избежать ошибок при загрузке)
+        // 1. Блокировка от интерфейса (открыт инвентарь и т.д.)
         if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentState != GameStateManager.GameState.Playing)
         {
-            // Сбрасываем скорость, чтобы персонаж не скользил по инерции
-            if (rb != null)
-            {
-                rb.velocity = new Vector3(0, rb.velocity.y, 0);
-            }
+            if (rb != null) rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            return;
+        }
+
+        // === 2. БЛОКИРОВКА ОТ АНИМАЦИИ (удар, сбор лута) ===
+        if (!canMove)
+        {
+            // Тормозим персонажа, чтобы он не скользил по инерции
+            if (rb != null) rb.velocity = new Vector3(0, rb.velocity.y, 0);
             return;
         }
     
-        // 1. Считываем ввод с клавиатуры (PC)
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        // 2. ИНТЕГРАЦИЯ ДЖОЙСТИКА (Mobile)
-        // Если на клавиатуре ничего не нажато И джойстик существует на сцене
         if (horizontalInput == 0 && verticalInput == 0 && FloatingJoystick.Instance != null)
         {
             horizontalInput = FloatingJoystick.Instance.Direction.x;
@@ -55,7 +49,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (playerCamera == null) return;
 
-        // Расчёт направления относительно камеры
         Vector3 cameraForward = playerCamera.transform.forward;
         Vector3 cameraRight = playerCamera.transform.right;
 
@@ -66,31 +59,25 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 moveDirection = (cameraForward * verticalInput) + (cameraRight * horizontalInput);
         
-        // Нормализация нужна, чтобы по диагонали не бежал быстрее
         if (moveDirection.magnitude > 1f) moveDirection.Normalize();
 
-        // Применяем физическую силу (Velocity)
         if (moveDirection != Vector3.zero)
         {
             rb.velocity = new Vector3(moveDirection.x * moveSpeed, rb.velocity.y, moveDirection.z * moveSpeed);
             
-            // МАГИЯ ВРАЩЕНИЯ:
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-
             if (characterModel != null)
             {
-                // Если мы назначили нашу ровную пустышку - крутим только её!
-                characterModel.rotation = Quaternion.Slerp(characterModel.rotation, targetRotation, Time.deltaTime * 10f);
+                // Оставили резкое вращение 30f!
+                characterModel.rotation = Quaternion.Slerp(characterModel.rotation, targetRotation, Time.deltaTime * 30f);
             }
             else
             {
-                // Старый метод (оставил на всякий случай)
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30f);
             }
         }
         else
         {
-            // Если ввода нет — гасим горизонтальную скорость, оставляя вертикальную (гравитацию)
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
         }
     }

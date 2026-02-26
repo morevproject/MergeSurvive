@@ -13,7 +13,7 @@ public class InteractionUIManager : MonoBehaviour
     public float gatherDelay = 3.15f; // Та самая задержка под идеальный кадр
 
     private WorldInteractable currentInteractable;
-    private bool isGathering = false; // Защита от спама кнопкой
+    public bool isGathering = false; // Защита от спама кнопкой
 
     private void Awake()
     {
@@ -82,7 +82,10 @@ public class InteractionUIManager : MonoBehaviour
 
         // 5. Завершаем процесс и снимаем блокировку
         isGathering = false;
-        HideInteraction();
+        if (InteractionHandler.Instance != null)
+        {
+            InteractionHandler.Instance.ForceRefresh();
+        }
     }
 
     private void PlayGatheringEffects()
