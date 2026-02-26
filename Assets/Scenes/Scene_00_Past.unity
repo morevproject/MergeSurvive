@@ -2906,6 +2906,10 @@ PrefabInstance:
       propertyPath: playerCamera
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 1360710638464147182, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
+      propertyPath: characterModel
+      value: 
+      objectReference: {fileID: 1766924062}
     - target: {fileID: 5381513357433001187, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.5
@@ -2971,6 +2975,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
+--- !u!4 &1766924062 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5126883291509596230, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
+  m_PrefabInstance: {fileID: 1766924061}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1780094775
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3088,6 +3097,7 @@ MonoBehaviour:
   interactButton: {fileID: 325711861}
   interactText: {fileID: 736983133}
   gatherDelay: 3.15
+  isGathering: 0
 --- !u!4 &1955918451
 Transform:
   m_ObjectHideFlags: 0
