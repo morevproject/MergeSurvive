@@ -168,16 +168,26 @@ public class CombatManager : MonoBehaviour
                 if (isRanged && projectilePrefab != null)
                 {
                     yield return new WaitForSeconds(1.4f); 
-                    GameObject arrowObj = Instantiate(projectilePrefab, hero.transform.position + Vector3.up, Quaternion.identity);
                     
-                    ProjectileMover projScript = arrowObj.GetComponent<ProjectileMover>();
-                    if (projScript == null) projScript = arrowObj.AddComponent<ProjectileMover>();
+                    // Спавним стрелу (чуть выше головы героя, чтобы из лука вылетала)
+                    Vector3 spawnPos = hero.transform.position + Vector3.up * 1.5f;
+                    GameObject arrowObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
                     
-                    projScript.Initialize(bossStats, hero.GetDamage());
+                    // === ФИКС: Используем наш умный Projectile ===
+                    Projectile projScript = arrowObj.GetComponent<Projectile>();
+                    if (projScript != null)
+                    {
+                        int heroDmg = hero.GetDamage();
+                        // Передаем босса как цель для самонаведения!
+                        projScript.Setup(heroDmg, boss.transform);
+                        Debug.Log($"Герой выстрелил в босса на {heroDmg}!");
+                    }
+                    
                     yield return new WaitForSeconds(projectileSpeed);
                 }
                 else
                 {
+                    // Логика ближнего боя осталась без изменений
                     yield return new WaitForSeconds(0.5f); 
                     int heroDmg = hero.GetDamage();
                     bossStats.TakeDamage(heroDmg);

@@ -40,12 +40,7 @@ public class PlayerStats : FighterStats
         currentHealth = maxHealth;
         RecalculateStats(null, null, null, null, null, null); 
         UpdateHealthUI();
-
-        // УДАЛИЛИ СТРОКУ, ВЫЗЫВАЮЩУЮ ОШИБКУ CS0070.
-        // PlayerProfileUI сам обновит полоску в своем Start().
     }
-
-    // --- БОЕВАЯ СИСТЕМА ---
     
     public override void TakeDamage(int damage)
     {
@@ -64,12 +59,9 @@ public class PlayerStats : FighterStats
         OnStatsUpdated?.Invoke();
     }
 
-    // --- ПРОГРЕССИЯ ---
-
     public void AddBulbs(int amount)
     {
         HintBulbs += amount;
-        Debug.Log($"[PlayerStats] +{amount} Лампочек. Всего: {HintBulbs}");
         OnStatsUpdated?.Invoke();
     }
 
@@ -123,21 +115,29 @@ public class PlayerStats : FighterStats
         OnStatsUpdated?.Invoke();
     }
 
+    // === ФИКС: ТЕПЕРЬ ДЛЯ БОЁВКИ УЧИТЫВАЕМ ТОЛЬКО СЛОТ ОРУЖИЯ ===
     public void RecalculateStats(ItemData weapon, ItemData armor, ItemData ammo, ItemData axe, ItemData pickaxe, ItemData shovel)
     {
-        TotalDamage = basePlayerDamage;
-        TotalArmor = baseArmor; 
+        int minDmg = basePlayerDamage;
+        int maxDmg = basePlayerDamage + 1; // Урон голыми руками: 1-2
         CurrentAttackRange = 2f; 
 
-        if (weapon != null) { TotalDamage += weapon.GetRandomDamage(); CurrentAttackRange = weapon.attackRange; }
-        else if (axe != null) { TotalDamage += axe.GetRandomDamage(); CurrentAttackRange = axe.attackRange; }
-        else if (pickaxe != null) { TotalDamage += pickaxe.GetRandomDamage(); CurrentAttackRange = pickaxe.attackRange; }
-        else if (shovel != null) { TotalDamage += shovel.GetRandomDamage(); CurrentAttackRange = shovel.attackRange; }
+        // Игнорируем рабочие инструменты (axe, pickaxe, shovel) в общей стате урона.
+        // Оружие дает урон только если оно лежит в слоте ОРУЖИЯ!
+        if (weapon != null) 
+        { 
+            minDmg += weapon.minDamage; 
+            maxDmg += weapon.maxDamage; 
+            CurrentAttackRange = weapon.attackRange; 
+        }
 
+        TotalDamage = maxDmg; // Записываем максимальный урон для UI инвентаря
+
+        TotalArmor = baseArmor; 
         if (armor != null) TotalArmor += armor.armorValue; 
         if (TotalArmor > 100) TotalArmor = 100;
 
-        UpdateWeaponStats(TotalDamage, TotalDamage, CurrentAttackRange);
+        UpdateWeaponStats(minDmg, maxDmg, CurrentAttackRange);
 
         if (armorStatText != null)
             armorStatText.text = $"Броня\n<color=blue>{TotalArmor}%</color>";
@@ -145,8 +145,28 @@ public class PlayerStats : FighterStats
         OnStatsUpdated?.Invoke();
     }
 
+    // === ФИКС: БРОСОК КУБИКА ТОЛЬКО ДЛЯ ОРУЖИЯ ===
+    public int RollCurrentDamage()
+    {
+        int min = basePlayerDamage;
+        int max = basePlayerDamage + 1;
+
+        if (PlayerProfileUI.Instance != null)
+        {
+            // Бьем ТОЛЬКО тем, что в слоте оружия. Никаких скрытых топоров!
+            ItemData activeWeapon = PlayerProfileUI.Instance.weaponSlot.currentItem;
+            
+            if (activeWeapon != null)
+            {
+                min += activeWeapon.minDamage;
+                max += activeWeapon.maxDamage;
+            }
+        }
+
+        return UnityEngine.Random.Range(min, max + 1);
+    }
+
     private void UpdateHealthUI()
     {
-        // UI обновляется через события FighterStats
     }
 }

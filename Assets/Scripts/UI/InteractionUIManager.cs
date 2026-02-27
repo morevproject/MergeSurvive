@@ -10,7 +10,8 @@ public class InteractionUIManager : MonoBehaviour
     [SerializeField] private Text interactText;         
 
     [Header("Настройки анимации")]
-    public float gatherDelay = 3.15f; // Та самая задержка под идеальный кадр
+    public float handGatherDelay = 3.15f; // Для сбора руками (мелкий)
+    public float toolGatherDelay = 0.5f;  // Для удара топором/киркой (мужик)
 
     private WorldInteractable currentInteractable;
     public bool isGathering = false; // Защита от спама кнопкой
@@ -62,26 +63,41 @@ public class InteractionUIManager : MonoBehaviour
     // ТА САМАЯ МАГИЯ ЗАДЕРЖКИ
     private IEnumerator GatherWithDelayRoutine()
     {
-        isGathering = true; // Включаем блокировку
+        isGathering = true; 
         
-        // 1. Мгновенно прячем кнопку, чтобы игрок не тыкал дважды
         if (interactButton != null) interactButton.SetActive(false);
 
-        // 2. Запускаем анимацию на персонаже (мальчик начинает приседать)
+        if (InteractionHandler.Instance != null)
+        {
+            InteractionHandler.Instance.FaceCurrentTarget();
+        }
+
+        // === УМНАЯ ЗАДЕРЖКА ===
+        // По умолчанию берем долгую (для рук)
+        float currentDelay = handGatherDelay; 
+        
+        // Если это ресурс, который требует инструмент (не "None") — берем быструю!
+        if (currentInteractable != null)
+        {
+            string tool = currentInteractable.requiredToolType;
+            if (!string.IsNullOrEmpty(tool) && tool != "None")
+            {
+                currentDelay = toolGatherDelay;
+            }
+        }
+
         PlayGatheringEffects();
 
-        // 3. Ставим код на паузу и ждем, пока рука коснется земли
-        yield return new WaitForSeconds(gatherDelay);
+        // Ждем ровно столько, сколько требует текущее действие
+        yield return new WaitForSeconds(currentDelay);
 
-        // 4. Рука на земле! Физически "бьем" предмет, он удаляется, 
-        // добавляется в инвентарь и запускает диалог Няни
         if (InteractionHandler.Instance != null)
         {
             InteractionHandler.Instance.InteractWithCurrentTarget();
         }
 
-        // 5. Завершаем процесс и снимаем блокировку
         isGathering = false;
+        
         if (InteractionHandler.Instance != null)
         {
             InteractionHandler.Instance.ForceRefresh();

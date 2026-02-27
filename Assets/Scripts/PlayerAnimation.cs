@@ -5,7 +5,6 @@ public class PlayerAnimation : MonoBehaviour
     public Animator animator;      
     public Rigidbody rb;           
 
-    // Универсальные параметры для ВСЕХ персонажей игры
     private const string IS_MOVING = "isMoving";
     private const string GATHER = "doGather";
     private const string ATTACK = "doAttack"; 
@@ -15,6 +14,8 @@ public class PlayerAnimation : MonoBehaviour
     {
         if (animator == null || rb == null) return;
 
+        // Просто смотрим на реальную скорость Rigidbody.
+        // Box Collider жестко остановит капсулу, скорость упадет, анимация выключится.
         Vector3 horizontalVelocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
         bool isMoving = horizontalVelocity.magnitude > 0.1f;
 

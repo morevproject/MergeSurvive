@@ -31,7 +31,12 @@ public class PlayerCombatController : MonoBehaviour
 
     void Update()
     {
-        FindNearestEnemy();
+        // === ФИКС ПРОПАДАЮЩИХ СТРЕЛ ===
+        // Не ищем новую цель (и не сбрасываем старую), пока бьем или натягиваем лук!
+        if (!isAttackRequested)
+        {
+            FindNearestEnemy();
+        }
     }
 
     void FindNearestEnemy()
@@ -74,7 +79,6 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
-    // === НОВЫЙ МЕТОД ДЛЯ ПОВОРОТА МОДЕЛЬКИ ===
     private void FaceTarget()
     {
         if (currentTarget == null) return;
@@ -82,12 +86,10 @@ public class PlayerCombatController : MonoBehaviour
         PlayerMovement pm = GetComponent<PlayerMovement>();
         if (pm != null && pm.characterModel != null)
         {
-            // Поворачиваем саму модельку, сохраняя её высоту
             pm.characterModel.LookAt(new Vector3(currentTarget.position.x, pm.characterModel.position.y, currentTarget.position.z));
         }
         else
         {
-            // Резервный вариант (крутим капсулу)
             transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
         }
     }
@@ -99,7 +101,7 @@ public class PlayerCombatController : MonoBehaviour
 
         isAttackRequested = true;
         
-        FaceTarget(); // <--- Разворачиваемся ПЕРЕД началом анимации
+        FaceTarget(); 
 
         bool isRanged = false;
         if (PlayerProfileUI.Instance != null && PlayerProfileUI.Instance.weaponSlot.currentItem != null)
@@ -133,11 +135,12 @@ public class PlayerCombatController : MonoBehaviour
 
         if (currentTarget == null || PlayerProfileUI.Instance == null) return;
         
-        FaceTarget(); // <--- Еще раз корректируем прицел В МОМЕНТ выстрела/удара
+        FaceTarget(); 
 
         ItemData weapon = PlayerProfileUI.Instance.weaponSlot.currentItem;
         ItemData ammo = PlayerProfileUI.Instance.ammoSlot.currentItem;
-        int damage = PlayerStats.Instance.TotalDamage;
+        
+        int damage = PlayerStats.Instance.RollCurrentDamage();
 
         if (weapon != null && weapon.requiresAmmo)
         {
@@ -153,8 +156,10 @@ public class PlayerCombatController : MonoBehaviour
             {
                 GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
                 Projectile projectile = arrowObj.GetComponent<Projectile>();
-                Vector3 targetSpot = currentTarget.position + Vector3.up * 0.5f;
-                projectile.Setup(damage, targetSpot);
+                
+                // === ФИКС САМОНАВЕДЕНИЯ ===
+                // Передаем саму цель (Transform), а не координаты
+                projectile.Setup(damage, currentTarget);
             }
         }
         else

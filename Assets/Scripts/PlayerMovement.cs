@@ -9,10 +9,10 @@ public class PlayerMovement : MonoBehaviour
     [Header("Визуал (Матрешка)")]
     public Transform characterModel; 
 
-    // === НОВЫЙ РУБИЛЬНИК ДЛЯ БЛОКИРОВКИ ===
     [HideInInspector] public bool canMove = true; 
 
     private Rigidbody rb;
+    private Vector3 moveDirection;
 
     void Start()
     {
@@ -23,18 +23,15 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // 1. Блокировка от интерфейса (открыт инвентарь и т.д.)
         if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentState != GameStateManager.GameState.Playing)
         {
-            if (rb != null) rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            moveDirection = Vector3.zero;
             return;
         }
 
-        // === 2. БЛОКИРОВКА ОТ АНИМАЦИИ (удар, сбор лута) ===
         if (!canMove)
         {
-            // Тормозим персонажа, чтобы он не скользил по инерции
-            if (rb != null) rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            moveDirection = Vector3.zero;
             return;
         }
     
@@ -57,18 +54,14 @@ public class PlayerMovement : MonoBehaviour
         cameraForward.Normalize();
         cameraRight.Normalize();
 
-        Vector3 moveDirection = (cameraForward * verticalInput) + (cameraRight * horizontalInput);
-        
+        moveDirection = (cameraForward * verticalInput) + (cameraRight * horizontalInput);
         if (moveDirection.magnitude > 1f) moveDirection.Normalize();
 
         if (moveDirection != Vector3.zero)
         {
-            rb.velocity = new Vector3(moveDirection.x * moveSpeed, rb.velocity.y, moveDirection.z * moveSpeed);
-            
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             if (characterModel != null)
             {
-                // Оставили резкое вращение 30f!
                 characterModel.rotation = Quaternion.Slerp(characterModel.rotation, targetRotation, Time.deltaTime * 30f);
             }
             else
@@ -76,9 +69,13 @@ public class PlayerMovement : MonoBehaviour
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30f);
             }
         }
-        else
-        {
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        }
+    }
+
+    void FixedUpdate()
+    {
+        if (rb == null) return;
+
+        // Прямая передача скорости. Если уперлись в Box Collider - физика сама сбросит её в 0.
+        rb.velocity = new Vector3(moveDirection.x * moveSpeed, rb.velocity.y, moveDirection.z * moveSpeed);
     }
 }

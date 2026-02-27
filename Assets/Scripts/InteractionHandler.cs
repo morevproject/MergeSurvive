@@ -89,6 +89,25 @@ public class InteractionHandler : MonoBehaviour
         }
     }
 
+    // === НОВЫЙ МЕТОД ДЛЯ ПОВОРОТА К РЕСУРСУ ===
+    public void FaceCurrentTarget()
+    {
+        if (currentTarget != null)
+        {
+            PlayerMovement pm = GetComponent<PlayerMovement>();
+            if (pm != null && pm.characterModel != null)
+            {
+                // Поворачиваем только визуал, сохраняя высоту (чтобы не клевал носом)
+                pm.characterModel.LookAt(new Vector3(currentTarget.transform.position.x, pm.characterModel.position.y, currentTarget.transform.position.z));
+            }
+            else
+            {
+                // Резервный вариант
+                transform.LookAt(new Vector3(currentTarget.transform.position.x, transform.position.y, currentTarget.transform.position.z));
+            }
+        }
+    }
+
     public void InteractWithCurrentTarget()
     {
         if (currentTarget != null)
