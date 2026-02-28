@@ -9,6 +9,11 @@ public class PlayerCombatController : MonoBehaviour
     [Header("Settings")]
     public LayerMask enemyLayer; 
     
+    [Header("Combat Cooldowns (Anti-Spam)")]
+    public float meleeAttackCooldown = 1.1f;  
+    public float rangedAttackCooldown = 1.6f; 
+    private float nextAttackTime = 0f;        
+
     [Header("Ranged Combat")]
     public GameObject arrowPrefab; 
     public Transform firePoint;    
@@ -31,8 +36,6 @@ public class PlayerCombatController : MonoBehaviour
 
     void Update()
     {
-        // === ФИКС ПРОПАДАЮЩИХ СТРЕЛ ===
-        // Не ищем новую цель (и не сбрасываем старую), пока бьем или натягиваем лук!
         if (!isAttackRequested)
         {
             FindNearestEnemy();
@@ -70,7 +73,14 @@ public class PlayerCombatController : MonoBehaviour
         if (nearestEnemy != null)
         {
             currentTarget = nearestEnemy;
-            if (attackButtonObject != null) attackButtonObject.SetActive(true);
+            
+            // === ФИКС ОТОБРАЖЕНИЯ КНОПКИ ===
+            // Показываем кнопку ТОЛЬКО если враг рядом И мы не в кулдауне
+            if (attackButtonObject != null) 
+            {
+                bool isCooldownFinished = Time.time >= nextAttackTime;
+                attackButtonObject.SetActive(isCooldownFinished);
+            }
         }
         else
         {
@@ -98,8 +108,12 @@ public class PlayerCombatController : MonoBehaviour
     {
         if (attackButtonObject != null && !attackButtonObject.activeSelf) return;
         if (currentTarget == null) return;
+        if (Time.time < nextAttackTime) return;
 
         isAttackRequested = true;
+        
+        // === МГНОВЕННО ПРЯЧЕМ КНОПКУ ===
+        if (attackButtonObject != null) attackButtonObject.SetActive(false);
         
         FaceTarget(); 
 
@@ -108,6 +122,8 @@ public class PlayerCombatController : MonoBehaviour
         {
             isRanged = PlayerProfileUI.Instance.weaponSlot.currentItem.requiresAmmo;
         }
+
+        nextAttackTime = Time.time + (isRanged ? rangedAttackCooldown : meleeAttackCooldown);
 
         if (playerAnim != null) 
         {
@@ -157,8 +173,6 @@ public class PlayerCombatController : MonoBehaviour
                 GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
                 Projectile projectile = arrowObj.GetComponent<Projectile>();
                 
-                // === ФИКС САМОНАВЕДЕНИЯ ===
-                // Передаем саму цель (Transform), а не координаты
                 projectile.Setup(damage, currentTarget);
             }
         }

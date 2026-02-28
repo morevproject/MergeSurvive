@@ -231,7 +231,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interactButton: {fileID: 747951681}
   interactText: {fileID: 2090256818}
-  gatherDelay: 3.15
+  handGatherDelay: 3.15
+  toolGatherDelay: 1
   isGathering: 0
 --- !u!4 &2759950
 Transform:
@@ -4126,6 +4127,10 @@ PrefabInstance:
       propertyPath: attackButtonObject
       value: 
       objectReference: {fileID: 1817465987}
+    - target: {fileID: 6335689703634135851, guid: 000f6e569d9f943409db108faf112f7d, type: 3}
+      propertyPath: rangedAttackCooldown
+      value: 1.8
+      objectReference: {fileID: 0}
     - target: {fileID: 6746154277135125021, guid: 000f6e569d9f943409db108faf112f7d, type: 3}
       propertyPath: m_Drag
       value: 0
