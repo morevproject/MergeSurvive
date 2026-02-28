@@ -1,4 +1,4 @@
-using System.Collections; // Обязательно для работы корутин
+using System.Collections; 
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,6 +12,9 @@ public class InteractionUIManager : MonoBehaviour
     [Header("Настройки анимации")]
     public float handGatherDelay = 3.15f; // Для сбора руками (мелкий)
     public float toolGatherDelay = 0.5f;  // Для удара топором/киркой (мужик)
+    
+    // === ТА САМАЯ ПОТЕРЯННАЯ ПЕРЕМЕННАЯ ===
+    public float toolGatherFinishDelay = 0.6f; // Ожидание после удара, чтобы доиграть анимацию
 
     private WorldInteractable currentInteractable;
     public bool isGathering = false; // Защита от спама кнопкой
@@ -33,7 +36,6 @@ public class InteractionUIManager : MonoBehaviour
             }
         }
         
-        // Если уже собираем предмет, не переключаемся на другой
         if (isGathering) return; 
         
         if (interactButton == null) return;
@@ -44,7 +46,6 @@ public class InteractionUIManager : MonoBehaviour
 
     public void HideInteraction()
     {
-        // Блокируем сброс таргета, если анимация уже началась
         if (isGathering) return; 
         
         currentInteractable = null; 
@@ -53,16 +54,17 @@ public class InteractionUIManager : MonoBehaviour
 
     public void OnInteractButtonPressed()
     {
-        // Проверяем, что таргет есть и мы еще не в процессе сбора
         if (currentInteractable != null && !isGathering)
         {
             StartCoroutine(GatherWithDelayRoutine());
         }
     }
 
-    // ТА САМАЯ МАГИЯ ЗАДЕРЖКИ
     private IEnumerator GatherWithDelayRoutine()
     {
+        // === АНТИ-СПАМ: Защита от старта второй корутины ===
+        if (isGathering) yield break; 
+        
         isGathering = true; 
         
         if (interactButton != null) interactButton.SetActive(false);
@@ -72,28 +74,31 @@ public class InteractionUIManager : MonoBehaviour
             InteractionHandler.Instance.FaceCurrentTarget();
         }
 
-        // === УМНАЯ ЗАДЕРЖКА ===
-        // По умолчанию берем долгую (для рук)
         float currentDelay = handGatherDelay; 
+        float finishDelay = 0f; 
         
-        // Если это ресурс, который требует инструмент (не "None") — берем быструю!
         if (currentInteractable != null)
         {
             string tool = currentInteractable.requiredToolType;
             if (!string.IsNullOrEmpty(tool) && tool != "None")
             {
                 currentDelay = toolGatherDelay;
+                finishDelay = toolGatherFinishDelay; 
             }
         }
 
         PlayGatheringEffects();
 
-        // Ждем ровно столько, сколько требует текущее действие
         yield return new WaitForSeconds(currentDelay);
 
         if (InteractionHandler.Instance != null)
         {
             InteractionHandler.Instance.InteractWithCurrentTarget();
+        }
+
+        if (finishDelay > 0f)
+        {
+            yield return new WaitForSeconds(finishDelay);
         }
 
         isGathering = false;
@@ -109,12 +114,9 @@ public class InteractionUIManager : MonoBehaviour
         var playerVisuals = PlayerEquipmentVisuals.Instance;
         var playerAnim = FindObjectOfType<PlayerAnimation>();
 
-        // 1. БЕРЕМ ТИП ИНСТРУМЕНТА ИЗ НАСТРОЕК САМОГО ОБЪЕКТА!
-        // (Больше не гадаем по имени. Что указано в префабе ресурса, то и требуем)
         string neededToolType = currentInteractable.requiredToolType;
         if (string.IsNullOrEmpty(neededToolType)) neededToolType = "None";
 
-        // 2. ИЩЕМ КОНКРЕТНОЕ ИМЯ ПРЕДМЕТА В СЛОТАХ (если инструмент вообще нужен)
         string foundItemID = "";
         
         if (PlayerProfileUI.Instance != null && neededToolType != "None")
@@ -137,22 +139,20 @@ public class InteractionUIManager : MonoBehaviour
             }
         }
 
-        // 3. ВИЗУАЛИЗАЦИЯ ИНСТРУМЕНТА
         if (playerVisuals != null && !string.IsNullOrEmpty(foundItemID))
         {
             playerVisuals.ShowToolTemporarily(foundItemID, 1.5f);
         }
 
-        // 4. УМНАЯ АНИМАЦИЯ (Бьем или Нагибаемся)
         if (playerAnim != null)
         {
             if (neededToolType == "Axe" || neededToolType == "Pickaxe" || neededToolType == "Shovel")
             {
-                playerAnim.TriggerAttack(); // Взмах инструментом
+                playerAnim.TriggerAttack(); 
             }
             else
             {
-                playerAnim.TriggerGather(); // Наклон (для "None")
+                playerAnim.TriggerGather(); 
             }
         }
     }

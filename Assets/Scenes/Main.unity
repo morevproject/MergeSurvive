@@ -233,6 +233,7 @@ MonoBehaviour:
   interactText: {fileID: 2090256818}
   handGatherDelay: 3.15
   toolGatherDelay: 1
+  toolGatherFinishDelay: 1
   isGathering: 0
 --- !u!4 &2759950
 Transform:
