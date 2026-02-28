@@ -24,6 +24,13 @@ public class InteractionHandler : MonoBehaviour
             return;
         }
 
+        // --- ФИКС 3: ЗАМОРОЗКА РАДАРА ---
+        // Если проигрывается анимация сбора, вообще не проверяем дистанцию!
+        if (InteractionUIManager.Instance != null && InteractionUIManager.Instance.isGathering)
+        {
+            return;
+        }
+
         if (currentTarget != null)
         {
             if (currentTarget.gameObject == null || !currentTarget.gameObject.activeInHierarchy)
@@ -78,6 +85,25 @@ public class InteractionHandler : MonoBehaviour
             {
                 if (InteractionUIManager.Instance != null)
                     InteractionUIManager.Instance.HideInteraction();
+            }
+        }
+    }
+
+    // === НОВЫЙ МЕТОД ДЛЯ ПОВОРОТА К РЕСУРСУ ===
+    public void FaceCurrentTarget()
+    {
+        if (currentTarget != null)
+        {
+            PlayerMovement pm = GetComponent<PlayerMovement>();
+            if (pm != null && pm.characterModel != null)
+            {
+                // Поворачиваем только визуал, сохраняя высоту (чтобы не клевал носом)
+                pm.characterModel.LookAt(new Vector3(currentTarget.transform.position.x, pm.characterModel.position.y, currentTarget.transform.position.z));
+            }
+            else
+            {
+                // Резервный вариант
+                transform.LookAt(new Vector3(currentTarget.transform.position.x, transform.position.y, currentTarget.transform.position.z));
             }
         }
     }

@@ -1,3 +1,4 @@
+using System.Collections; 
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +9,15 @@ public class InteractionUIManager : MonoBehaviour
     [SerializeField] private GameObject interactButton; 
     [SerializeField] private Text interactText;         
 
+    [Header("Настройки анимации")]
+    public float handGatherDelay = 3.15f; // Для сбора руками (мелкий)
+    public float toolGatherDelay = 0.5f;  // Для удара топором/киркой (мужик)
+    
+    // === ТА САМАЯ ПОТЕРЯННАЯ ПЕРЕМЕННАЯ ===
+    public float toolGatherFinishDelay = 0.6f; // Ожидание после удара, чтобы доиграть анимацию
+
     private WorldInteractable currentInteractable;
+    public bool isGathering = false; // Защита от спама кнопкой
 
     private void Awake()
     {
@@ -27,6 +36,8 @@ public class InteractionUIManager : MonoBehaviour
             }
         }
         
+        if (isGathering) return; 
+        
         if (interactButton == null) return;
 
         currentInteractable = interactable;
@@ -35,17 +46,67 @@ public class InteractionUIManager : MonoBehaviour
 
     public void HideInteraction()
     {
+        if (isGathering) return; 
+        
         currentInteractable = null; 
         if (interactButton != null) interactButton.SetActive(false);
     }
 
     public void OnInteractButtonPressed()
     {
+        if (currentInteractable != null && !isGathering)
+        {
+            StartCoroutine(GatherWithDelayRoutine());
+        }
+    }
+
+    private IEnumerator GatherWithDelayRoutine()
+    {
+        // === АНТИ-СПАМ: Защита от старта второй корутины ===
+        if (isGathering) yield break; 
+        
+        isGathering = true; 
+        
+        if (interactButton != null) interactButton.SetActive(false);
+
+        if (InteractionHandler.Instance != null)
+        {
+            InteractionHandler.Instance.FaceCurrentTarget();
+        }
+
+        float currentDelay = handGatherDelay; 
+        float finishDelay = 0f; 
+        
         if (currentInteractable != null)
         {
-            PlayGatheringEffects();
+            string tool = currentInteractable.requiredToolType;
+            if (!string.IsNullOrEmpty(tool) && tool != "None")
+            {
+                currentDelay = toolGatherDelay;
+                finishDelay = toolGatherFinishDelay; 
+            }
         }
-        InteractionHandler.Instance.InteractWithCurrentTarget();
+
+        PlayGatheringEffects();
+
+        yield return new WaitForSeconds(currentDelay);
+
+        if (InteractionHandler.Instance != null)
+        {
+            InteractionHandler.Instance.InteractWithCurrentTarget();
+        }
+
+        if (finishDelay > 0f)
+        {
+            yield return new WaitForSeconds(finishDelay);
+        }
+
+        isGathering = false;
+        
+        if (InteractionHandler.Instance != null)
+        {
+            InteractionHandler.Instance.ForceRefresh();
+        }
     }
 
     private void PlayGatheringEffects()
@@ -53,31 +114,17 @@ public class InteractionUIManager : MonoBehaviour
         var playerVisuals = PlayerEquipmentVisuals.Instance;
         var playerAnim = FindObjectOfType<PlayerAnimation>();
 
-        // 1. ОПРЕДЕЛЯЕМ ТИП ИНСТРУМЕНТА (чтобы знать, где искать)
-        string neededToolType = "Axe"; 
-        string targetName = currentInteractable.gameObject.name;
-        
-        if (targetName.Contains("Rock") || targetName.Contains("Stone") || targetName.Contains("Ore"))
-        {
-            neededToolType = "Pickaxe";
-        }
-        else if (targetName.Contains("Dirt") || targetName.Contains("Clay") || targetName.Contains("Mound") || targetName.Contains("Земл"))
-        {
-            neededToolType = "Shovel";
-        }
+        string neededToolType = currentInteractable.requiredToolType;
+        if (string.IsNullOrEmpty(neededToolType)) neededToolType = "None";
 
-        // 2. ИЩЕМ КОНКРЕТНОЕ ИМЯ ПРЕДМЕТА В СЛОТАХ
-        // (Нам нужно не просто "Pickaxe", а "Scrap_Pickaxe" или "Cyber_Pickaxe")
         string foundItemID = "";
         
-        if (PlayerProfileUI.Instance != null)
+        if (PlayerProfileUI.Instance != null && neededToolType != "None")
         {
-            // А. Проверяем оружие (вдруг держим инструмент как меч)
             if (CheckSlotForTool(PlayerProfileUI.Instance.weaponSlot, neededToolType)) 
             {
                 foundItemID = PlayerProfileUI.Instance.weaponSlot.currentItem.ItemName;
             }
-            // Б. Проверяем профильные слоты
             else if (neededToolType == "Axe" && CheckSlotForTool(PlayerProfileUI.Instance.axeSlot, "Axe")) 
             {
                 foundItemID = PlayerProfileUI.Instance.axeSlot.currentItem.ItemName;
@@ -91,23 +138,22 @@ public class InteractionUIManager : MonoBehaviour
                 foundItemID = PlayerProfileUI.Instance.shovelSlot.currentItem.ItemName;
             }
         }
-        // Fallback для тестов без UI (если нужно)
-        else 
-        {
-            // Тут мы не знаем имя, поэтому ничего не покажем, но анимацию сыграем
-        }
 
-        // 3. ВИЗУАЛИЗАЦИЯ
-        // Запускаем показ только если нашли КОНКРЕТНЫЙ предмет
         if (playerVisuals != null && !string.IsNullOrEmpty(foundItemID))
         {
             playerVisuals.ShowToolTemporarily(foundItemID, 1.5f);
         }
 
-        // Анимацию руками играем всегда
         if (playerAnim != null)
         {
-            playerAnim.TriggerGather();
+            if (neededToolType == "Axe" || neededToolType == "Pickaxe" || neededToolType == "Shovel")
+            {
+                playerAnim.TriggerAttack(); 
+            }
+            else
+            {
+                playerAnim.TriggerGather(); 
+            }
         }
     }
 

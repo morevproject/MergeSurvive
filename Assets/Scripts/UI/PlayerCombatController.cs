@@ -4,12 +4,16 @@ using UnityEngine.UI;
 public class PlayerCombatController : MonoBehaviour
 {
     [Header("UI")]
-    // Мы убрали AddListener, поэтому переменная кнопки нужна только для скрытия/показа
     public GameObject attackButtonObject; 
 
     [Header("Settings")]
     public LayerMask enemyLayer; 
     
+    [Header("Combat Cooldowns (Anti-Spam)")]
+    public float meleeAttackCooldown = 1.1f;  
+    public float rangedAttackCooldown = 1.6f; 
+    private float nextAttackTime = 0f;        
+
     [Header("Ranged Combat")]
     public GameObject arrowPrefab; 
     public Transform firePoint;    
@@ -18,16 +22,11 @@ public class PlayerCombatController : MonoBehaviour
     public PlayerAnimation playerAnim;
 
     private bool isAttackRequested = false;
-
     private Transform currentTarget; 
 
     void Start()
     {
         if (attackButtonObject != null) attackButtonObject.SetActive(false);
-        
-        // --- УБРАЛИ ЭТУ СТРОКУ ---
-        // if (attackButton != null) attackButton.onClick.AddListener(StartAttackSequence);
-        // -------------------------
     }
 
     void OnDisable()
@@ -37,12 +36,14 @@ public class PlayerCombatController : MonoBehaviour
 
     void Update()
     {
-        FindNearestEnemy();
+        if (!isAttackRequested)
+        {
+            FindNearestEnemy();
+        }
     }
 
     void FindNearestEnemy()
     {
-        // --- ФИКС: Если открыто Меню, мы прячем кнопку и не ищем врагов ---
         if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen)
         {
             currentTarget = null;
@@ -72,7 +73,14 @@ public class PlayerCombatController : MonoBehaviour
         if (nearestEnemy != null)
         {
             currentTarget = nearestEnemy;
-            if (attackButtonObject != null) attackButtonObject.SetActive(true);
+            
+            // === ФИКС ОТОБРАЖЕНИЯ КНОПКИ ===
+            // Показываем кнопку ТОЛЬКО если враг рядом И мы не в кулдауне
+            if (attackButtonObject != null) 
+            {
+                bool isCooldownFinished = Time.time >= nextAttackTime;
+                attackButtonObject.SetActive(isCooldownFinished);
+            }
         }
         else
         {
@@ -81,49 +89,74 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
-    // --- СДЕЛАЛИ PUBLIC (чтобы видеть в Инспекторе) ---
-    public void StartAttackSequence()
+    private void FaceTarget()
     {
-        // На всякий случай защита: если кнопки нет на экране - не бьем
-        if (attackButtonObject != null && !attackButtonObject.activeSelf) return;
-
         if (currentTarget == null) return;
-
-        // 2. ВЗВОДИМ ФЛАГ: "Мы реально хотим ударить"
-        isAttackRequested = true;
         
-        transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
-
-        if (playerAnim != null) 
+        PlayerMovement pm = GetComponent<PlayerMovement>();
+        if (pm != null && pm.characterModel != null)
         {
-            playerAnim.TriggerAttack();
+            pm.characterModel.LookAt(new Vector3(currentTarget.position.x, pm.characterModel.position.y, currentTarget.position.z));
+        }
+        else
+        {
+            transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
         }
     }
 
-    // Этот метод вызывает анимация (Animation Event)
+    public void StartAttackSequence()
+    {
+        if (attackButtonObject != null && !attackButtonObject.activeSelf) return;
+        if (currentTarget == null) return;
+        if (Time.time < nextAttackTime) return;
+
+        isAttackRequested = true;
+        
+        // === МГНОВЕННО ПРЯЧЕМ КНОПКУ ===
+        if (attackButtonObject != null) attackButtonObject.SetActive(false);
+        
+        FaceTarget(); 
+
+        bool isRanged = false;
+        if (PlayerProfileUI.Instance != null && PlayerProfileUI.Instance.weaponSlot.currentItem != null)
+        {
+            isRanged = PlayerProfileUI.Instance.weaponSlot.currentItem.requiresAmmo;
+        }
+
+        nextAttackTime = Time.time + (isRanged ? rangedAttackCooldown : meleeAttackCooldown);
+
+        if (playerAnim != null) 
+        {
+            if (isRanged)
+            {
+                playerAnim.animator.SetTrigger("doShoot"); 
+            }
+            else
+            {
+                playerAnim.TriggerAttack();
+            }
+        }
+    }
+
     public void ExecuteAttackLogic()
     {
         if (!this.enabled) return;
 
-        // 3. ПРОВЕРЯЕМ ФЛАГ
-        // Если флаг false — значит, этот ивент прилетел из анимации Сбора (или другой), 
-        // а не по нажатию кнопки Атаки. ИГНОРИРУЕМ ЕГО.
         if (!isAttackRequested) 
         {
-            // Debug.Log("Игнорирую атаку: кнопка не была нажата (скорее всего, рубим дерево)");
             return;
         }
 
-        // СБРАСЫВАЕМ ФЛАГ (чтобы следующий случайный ивент снова не сработал)
         isAttackRequested = false;
 
         if (currentTarget == null || PlayerProfileUI.Instance == null) return;
         
-        transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
+        FaceTarget(); 
 
         ItemData weapon = PlayerProfileUI.Instance.weaponSlot.currentItem;
         ItemData ammo = PlayerProfileUI.Instance.ammoSlot.currentItem;
-        int damage = PlayerStats.Instance.TotalDamage;
+        
+        int damage = PlayerStats.Instance.RollCurrentDamage();
 
         if (weapon != null && weapon.requiresAmmo)
         {
@@ -139,8 +172,8 @@ public class PlayerCombatController : MonoBehaviour
             {
                 GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
                 Projectile projectile = arrowObj.GetComponent<Projectile>();
-                Vector3 targetSpot = currentTarget.position + Vector3.up * 0.5f;
-                projectile.Setup(damage, targetSpot);
+                
+                projectile.Setup(damage, currentTarget);
             }
         }
         else

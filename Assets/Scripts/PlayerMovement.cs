@@ -2,45 +2,42 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Настройки движения")]
     public float moveSpeed = 5f;
     public Camera playerCamera;
-    private Rigidbody rb; // Ссылка на физическое тело
+
+    [Header("Визуал (Матрешка)")]
+    public Transform characterModel; 
+
+    [HideInInspector] public bool canMove = true; 
+
+    private Rigidbody rb;
+    private Vector3 moveDirection;
 
     void Start()
     {
-        // Кэшируем ссылку на Rigidbody при старте (это эффективнее)
         rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            Debug.LogError("PlayerMovement: No Rigidbody found on Player!");
-        }
-
-        // Если камеру не назначили вручную, берём главную
-        if (playerCamera == null)
-        {
-            playerCamera = Camera.main;
-        }
+        if (rb == null) Debug.LogError("PlayerMovement: No Rigidbody found!");
+        if (playerCamera == null) playerCamera = Camera.main;
     }
 
     void Update()
     {
-        // Если игра не в состоянии "Playing" (например, открыт инвентарь) - блокируем ввод
-        if (GameStateManager.Instance.CurrentState != GameStateManager.GameState.Playing)
+        if (GameStateManager.Instance != null && GameStateManager.Instance.CurrentState != GameStateManager.GameState.Playing)
         {
-            // Сбрасываем скорость, чтобы персонаж не скользил по инерции
-            if (rb != null)
-            {
-                rb.velocity = new Vector3(0, rb.velocity.y, 0);
-            }
+            moveDirection = Vector3.zero;
+            return;
+        }
+
+        if (!canMove)
+        {
+            moveDirection = Vector3.zero;
             return;
         }
     
-        // 1. Считываем ввод с клавиатуры (PC)
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        // 2. ИНТЕГРАЦИЯ ДЖОЙСТИКА (Mobile)
-        // Если на клавиатуре ничего не нажато И джойстик существует на сцене
         if (horizontalInput == 0 && verticalInput == 0 && FloatingJoystick.Instance != null)
         {
             horizontalInput = FloatingJoystick.Instance.Direction.x;
@@ -49,7 +46,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (playerCamera == null) return;
 
-        // Расчёт направления относительно камеры
         Vector3 cameraForward = playerCamera.transform.forward;
         Vector3 cameraRight = playerCamera.transform.right;
 
@@ -58,24 +54,28 @@ public class PlayerMovement : MonoBehaviour
         cameraForward.Normalize();
         cameraRight.Normalize();
 
-        Vector3 moveDirection = (cameraForward * verticalInput) + (cameraRight * horizontalInput);
-        
-        // Нормализация нужна, чтобы по диагонали не бежал быстрее (но джойстик это обычно сам делает)
+        moveDirection = (cameraForward * verticalInput) + (cameraRight * horizontalInput);
         if (moveDirection.magnitude > 1f) moveDirection.Normalize();
 
-        // Применяем физическую силу (Velocity)
         if (moveDirection != Vector3.zero)
         {
-            rb.velocity = new Vector3(moveDirection.x * moveSpeed, rb.velocity.y, moveDirection.z * moveSpeed);
-            
-            // Опционально: поворот персонажа в сторону движения
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+            if (characterModel != null)
+            {
+                characterModel.rotation = Quaternion.Slerp(characterModel.rotation, targetRotation, Time.deltaTime * 30f);
+            }
+            else
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 30f);
+            }
         }
-        else
-        {
-            // Если ввода нет — гасим горизонтальную скорость, оставляя вертикальную (гравитацию)
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        }
+    }
+
+    void FixedUpdate()
+    {
+        if (rb == null) return;
+
+        // Прямая передача скорости. Если уперлись в Box Collider - физика сама сбросит её в 0.
+        rb.velocity = new Vector3(moveDirection.x * moveSpeed, rb.velocity.y, moveDirection.z * moveSpeed);
     }
 }
