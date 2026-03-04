@@ -28,8 +28,7 @@ public class HintManager : MonoBehaviour
     public Button buy10Btn;
     public Button closeShopBtn;
 
-    [Header("Crafting Slots")]
-    public List<CraftingSlot> craftingSlots; 
+    // УБРАЛИ ЛИШНИЙ СПИСОК СЛОТОВ ОТСЮДА!
 
     private bool isAnimating = false;
 
@@ -53,6 +52,20 @@ public class HintManager : MonoBehaviour
     void OnDisable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; }
     void Update() { UpdateUI(); }
 
+    // === УМНЫЙ ПОИСК СЛОТОВ ===
+    private List<CraftingSlotUI> GetCraftingSlots()
+    {
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.craftingSlots != null)
+        {
+            return CraftingUIManager.Instance.craftingSlots;
+        }
+        if (CraftingPanel.Instance != null && CraftingPanel.Instance.slots != null)
+        {
+            return CraftingPanel.Instance.slots.ToList();
+        }
+        return new List<CraftingSlotUI>();
+    }
+
     public void UpdateUI()
     {
         if (hintCountText == null || PlayerStats.Instance == null) return;
@@ -64,7 +77,6 @@ public class HintManager : MonoBehaviour
     {
         if (isAnimating) return; 
         
-        // 1. ЖЕСТКАЯ БЛОКИРОВКА: Выключаем кнопку от спама!
         if (hintButton != null) hintButton.interactable = false;
         
         if (PlayerStats.Instance != null && PlayerStats.Instance.HintBulbs > 0)
@@ -87,7 +99,6 @@ public class HintManager : MonoBehaviour
         else 
         {
             Debug.Log("Нет доступных комбинаций!");
-            // Возвращаем кнопку, если анимация не началась
             if (hintButton != null) hintButton.interactable = true;
         }
     }
@@ -126,19 +137,20 @@ public class HintManager : MonoBehaviour
     IEnumerator AnimateHintRoutine(Recipe recipe)
     {
         isAnimating = true;
-        // Запрещаем любые клики по инвентарю и слотам
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = false;
 
         if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
         SaveProgress();
 
-        // Если в слотах лежали НАСТОЯЩИЕ вещи игрока - возвращаем их в инвентарь
         ClearCraftingSlots();
         yield return new WaitForSeconds(0.1f);
 
-        List<CraftingSlot> availableSlots = new List<CraftingSlot>();
-        foreach(var s in craftingSlots) {
-             if(s.GetResourceInSlot() == null) availableSlots.Add(s);
+        // Берем слоты динамически
+        List<CraftingSlotUI> allSlots = GetCraftingSlots();
+        List<CraftingSlotUI> availableSlots = new List<CraftingSlotUI>();
+        
+        foreach(var s in allSlots) {
+             if(s != null && s.GetResourceInSlot() == null) availableSlots.Add(s);
         }
 
         foreach (var ing in recipe.requiredIngredients)
@@ -147,7 +159,7 @@ public class HintManager : MonoBehaviour
             {
                 if (availableSlots.Count > 0)
                 {
-                    CraftingSlot targetSlot = availableSlots[0];
+                    CraftingSlotUI targetSlot = availableSlots[0]; 
                     availableSlots.RemoveAt(0); 
 
                     Sprite iconToFly = null;
@@ -184,13 +196,11 @@ public class HintManager : MonoBehaviour
         CraftingManager.Instance.DiscoverRecipe(recipe); 
         SaveProgress();
 
-        // 2. ФИКС ЭКСПЛОЙТА: Молча испаряем предметы-подсказки из слотов!
-        foreach (var slot in craftingSlots) 
+        foreach (var slot in allSlots) 
         {
-            if (slot != null) slot.ClearSlot(); // Используем ClearSlot без возврата в инвентарь
+            if (slot != null) slot.ClearSlot(); 
         }
 
-        // Включаем всё обратно
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
         if (hintButton != null) hintButton.interactable = true;
         isAnimating = false;
@@ -213,7 +223,7 @@ public class HintManager : MonoBehaviour
         return fallbackPos; 
     }
 
-    IEnumerator FlyIconToSlot(Sprite sprite, Vector3 startWorldPos, CraftingSlot targetSlot, float duration)
+    public IEnumerator FlyIconToSlot(Sprite sprite, Vector3 startWorldPos, CraftingSlotUI targetSlot, float duration)
     {
         if (flyingIconPrefab == null || animationParent == null) yield break;
 
@@ -246,10 +256,14 @@ public class HintManager : MonoBehaviour
 
     private void ClearCraftingSlots()
     {
-        if (craftingSlots == null) return;
-        foreach (var slot in craftingSlots) {
+        List<CraftingSlotUI> allSlots = GetCraftingSlots();
+        foreach (var slot in allSlots) {
+            if (slot == null) continue; 
+            
             if (slot.GetResourceInSlot() != null) {
-                InventoryManager.Instance.AddItem(slot.GetResourceInSlot(), 1); 
+                if (InventoryManager.Instance != null) {
+                    InventoryManager.Instance.AddItem(slot.GetResourceInSlot(), 1); 
+                }
                 slot.ClearSlot(); 
             }
         }
@@ -260,7 +274,6 @@ public class HintManager : MonoBehaviour
     public void CloseShop() 
     { 
         if (shopPanel != null) shopPanel.SetActive(false); 
-        // Разблокируем кнопку лампочки при закрытии магазина, если анимация не идет
         if (!isAnimating && hintButton != null) hintButton.interactable = true;
     }
 
