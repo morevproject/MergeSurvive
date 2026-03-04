@@ -21,7 +21,9 @@ MonoBehaviour:
   requiredWorkbenchTier: 1
   requiredIngredients:
   - resourceName: Clay
-    amount: 4
+    amount: 3
+  - resourceName: Oven
+    amount: 1
   outputResourceName: Clay_Bowl
   outputAmount: 1
   outputPrefab: {fileID: 0}
