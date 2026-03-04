@@ -4,6 +4,18 @@ using System.Collections.Generic;
 
 public class BoarAI : MonoBehaviour
 {
+    public static List<BoarAI> AllEnemies = new List<BoarAI>();
+
+    private void OnEnable()
+    {
+        if (!AllEnemies.Contains(this)) AllEnemies.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        AllEnemies.Remove(this);
+    }
+
     [Header("Stats")]
     public string enemyName = "Robot Enemy"; 
     public int maxHealth = 10;
@@ -16,21 +28,18 @@ public class BoarAI : MonoBehaviour
     public float panicSpeed = 5f;    
     public float panicDuration = 2f; 
 
-    // --- НОВАЯ СИСТЕМА ЛУТА ---
     [System.Serializable]
     public class EnemyLoot
     {
-        public string name; // Для удобства в инспекторе (не влияет на логику)
+        public string name; 
         public ItemData item;
-        [Range(0, 100)] public float dropChance = 50f; // Шанс в %
+        [Range(0, 100)] public float dropChance = 50f; 
         public int minAmount = 1;
         public int maxAmount = 1;
     }
 
     [Header("Loot Table")]
-    // Список всех возможных предметов с этого врага
     public List<EnemyLoot> lootTable = new List<EnemyLoot>(); 
-    // --------------------------
 
     [Header("Movement")]
     public float changeDirectionTime = 3f;
@@ -65,6 +74,10 @@ public class BoarAI : MonoBehaviour
 
     void Update()
     {
+        // Не обновляем таймер смены направления, если стоим на паузе
+        if (ResourceFinder.Instance != null && ResourceFinder.Instance.isSearching) return;
+        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen) return;
+
         moveTimer -= Time.deltaTime;
         if (moveTimer <= 0)
         {
@@ -77,8 +90,18 @@ public class BoarAI : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Если открыто меню — стоим
-        if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen) return;
+        // === УМНАЯ ЗАМОРОЗКА ===
+        // Если открыто меню ИЛИ идет показ радара — стоим!
+        if ((UIManager.Instance != null && UIManager.Instance.IsMenuOpen) || 
+            (ResourceFinder.Instance != null && ResourceFinder.Instance.isSearching))
+        {
+            // ФИКС ВАРНИНГА: Гасим инерцию, только если объект не кинематический
+            if (!rb.isKinematic)
+            {
+                rb.velocity = Vector3.zero; 
+            }
+            return;
+        }
 
         if (Physics.Raycast(transform.position, moveDirection, obstacleCheckDistance, obstacleMask))
         {
@@ -115,7 +138,6 @@ public class BoarAI : MonoBehaviour
 
         StartCoroutine(FlashColor());
         StartCoroutine(PanicRun()); 
-        Debug.Log($"{enemyName} получил {damage} урона!");
 
         if (currentHealth <= 0) Die();
     }
@@ -140,33 +162,25 @@ public class BoarAI : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("Враг побежден!");
-
-        // --- НОВАЯ ЛОГИКА ВЫДАЧИ ЛУТА ---
         if (InventoryManager.Instance != null && lootTable.Count > 0)
         {
             foreach (var lootRule in lootTable)
             {
                 if (lootRule.item == null) continue;
 
-                // Кидаем кубик (0..100)
                 float roll = Random.Range(0f, 100f);
 
                 if (roll <= lootRule.dropChance)
                 {
-                    // Определяем количество
                     int amountToGive = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
                     
                     if (amountToGive > 0)
                     {
                         InventoryManager.Instance.AddItem(lootRule.item, amountToGive);
-                        // Лог для проверки
-                        Debug.Log($"Лут: +{amountToGive} {lootRule.item.ItemName}");
                     }
                 }
             }
         }
-        // --------------------------------
 
         var worldID = GetComponent<WorldObjectID>();
         if (worldID != null)
