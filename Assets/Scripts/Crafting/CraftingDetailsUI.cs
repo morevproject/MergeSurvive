@@ -8,9 +8,9 @@ public class CraftingDetailsUI : MonoBehaviour
     public static CraftingDetailsUI Instance;
 
     [Header("UI Panels")]
-    public GameObject detailsWindow; // Само окно (панель)
-    public Transform ingredientsContainer; // Content в ScrollView
-    public GameObject ingredientPrefab; // Префаб строки
+    public GameObject detailsWindow; 
+    public Transform ingredientsContainer; 
+    public GameObject ingredientPrefab; 
 
     [Header("Info")]
     public Image resultIcon;
@@ -98,7 +98,12 @@ public class CraftingDetailsUI : MonoBehaviour
         if (ingredientsContainer == null || ingredientPrefab == null || currentRecipe == null) return;
 
         // Чистим старый список
-        foreach (Transform child in ingredientsContainer) Destroy(child.gameObject);
+        foreach (Transform child in ingredientsContainer) 
+        {
+            // МГНОВЕННО отрываем объект от родителя, чтобы он не мешал пересчету размеров!
+            child.SetParent(null); 
+            Destroy(child.gameObject);
+        }
         spawnedIngredients.Clear(); // Очищаем список ссылок
 
         bool allIngredientsAvailable = true;
@@ -133,6 +138,31 @@ public class CraftingDetailsUI : MonoBehaviour
 
         // 4. Обновляем состояние кнопки
         UpdateCreateButtonState(allIngredientsAvailable);
+
+        // === ВЫЗЫВАЕМ УЛЬТИМАТИВНЫЙ ФИКС ===
+        RectTransform contentRect = ingredientsContainer.GetComponent<RectTransform>();
+        if (contentRect != null)
+        {
+            StartCoroutine(ResetScrollRoutine(contentRect));
+        }
+    }
+
+    // === ДОБАВЛЯЕМ НОВЫЙ МЕТОД-КОРУТИНУ ===
+    private System.Collections.IEnumerator ResetScrollRoutine(RectTransform contentRect)
+    {
+        // 1. Ждем, пока Unity прожует все Layout Groups, маски и нарисует кадр
+        yield return new WaitForEndOfFrame();
+
+        // 2. Принудительно обновляем все холсты
+        Canvas.ForceUpdateCanvases();
+        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
+
+        // 3. И вот теперь, когда Unity успокоилась, жестко прибиваем скролл к верху!
+        UnityEngine.UI.ScrollRect scroll = contentRect.GetComponentInParent<UnityEngine.UI.ScrollRect>();
+        if (scroll != null) 
+        {
+            scroll.verticalNormalizedPosition = 1f;
+        }
     }
 
     private void UpdateDynamicAmounts()

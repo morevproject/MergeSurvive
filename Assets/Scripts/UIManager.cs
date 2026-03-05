@@ -18,6 +18,10 @@ public class UIManager : MonoBehaviour
     public GameObject attackButtonObject; 
     public GameObject gatherButtonObject; 
 
+    // === НОВАЯ ПЕРЕМЕННАЯ ДЛЯ АВАТАРА ===
+    [Header("Avatar Settings")]
+    public GameObject avatarUI; // Перетащи сюда свой LeftAvatar (или панель с ним) из Иерархии
+
     public static event Action<bool> OnInventoryToggled; 
     public static event Action<bool> OnCraftingToggled;  
     
@@ -83,7 +87,7 @@ public class UIManager : MonoBehaviour
             if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();
         }
 
-        // --- 4. КИНЕМАТОГРАФИЧНОСТЬ (НОВОЕ) ---
+        // --- 4. КИНЕМАТОГРАФИЧНОСТЬ ---
         
         // А) Скрываем/Показываем системный курсор
         Cursor.visible = !active;
@@ -151,6 +155,13 @@ public class UIManager : MonoBehaviour
         bool isCraftingOpen = (CraftingPanel != null && CraftingPanel.activeSelf);
         
         SetMenuState(isInventoryOpen || isCraftingOpen);
+
+        // === ИЗЯЩНАЯ ПРОВЕРКА ДЛЯ АВАТАРА ===
+        if (avatarUI != null)
+        {
+            // Аватар включен всегда (!isCraftingOpen означает "пока Верстак НЕ открыт")
+            avatarUI.SetActive(!isCraftingOpen);
+        }
     }
     
     void SetMenuState(bool isOpen)

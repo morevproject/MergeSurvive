@@ -410,9 +410,17 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3545192383122173384, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -192.52026
+      objectReference: {fileID: 0}
+    - target: {fileID: 3545192383122173384, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 27.532959
+      objectReference: {fileID: 0}
     - target: {fileID: 3554454780227175563, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3720262645347053933, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_sharedMaterial
@@ -427,12 +435,20 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3868410898110217392, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3868410898110217392, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3868410898110217392, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3868410898110217392, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0.000015258789
+      value: -0.000015258789
       objectReference: {fileID: 0}
     - target: {fileID: 4233751129060907868, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_AnchorMax.y
@@ -592,14 +608,26 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5748828574589416395, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5748828574589416395, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5748828574589416395, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5748828574589416395, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5748828574589416395, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5748828574589416395, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5845641967184808375, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
@@ -704,7 +732,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7377388810650272562, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7728198196048478566, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3411,6 +3439,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80719c36c1aab8241ab583f92c9198ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1722554225 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2131171858332489603, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+  m_PrefabInstance: {fileID: 12080200}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1753285424
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3620,6 +3653,7 @@ MonoBehaviour:
   craftingButton: {fileID: 1778866867}
   attackButtonObject: {fileID: 1817465987}
   gatherButtonObject: {fileID: 747951681}
+  avatarUI: {fileID: 1722554225}
 --- !u!4 &1779840454
 Transform:
   m_ObjectHideFlags: 0
