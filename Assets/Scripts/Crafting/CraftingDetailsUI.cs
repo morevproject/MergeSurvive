@@ -21,6 +21,9 @@ public class CraftingDetailsUI : MonoBehaviour
     public Button createButton;
     public Button closeButton;
     public Button backgroundCloseButton; 
+    
+    // === НОВАЯ КНОПКА ДЛЯ ОЧИСТКИ (Идея от игрока!) ===
+    public Button clearSlotsButton; 
 
     private Recipe currentRecipe;
     
@@ -97,10 +100,10 @@ public class CraftingDetailsUI : MonoBehaviour
     {
         if (ingredientsContainer == null || ingredientPrefab == null || currentRecipe == null) return;
 
-        // Чистим старый список
-        foreach (Transform child in ingredientsContainer) 
+        // === ПРАВИЛЬНАЯ ОЧИСТКА СПИСКА (Идем с конца) ===
+        for (int i = ingredientsContainer.childCount - 1; i >= 0; i--)
         {
-            // МГНОВЕННО отрываем объект от родителя, чтобы он не мешал пересчету размеров!
+            Transform child = ingredientsContainer.GetChild(i);
             child.SetParent(null); 
             Destroy(child.gameObject);
         }
@@ -228,6 +231,12 @@ public class CraftingDetailsUI : MonoBehaviour
 
             // 3. НЕ ЗАКРЫВАЕМ ОКНО, А ОБНОВЛЯЕМ ЦИФРЫ
             RefreshIngredientsList();
+
+            // === 4. АВТОМАТИЧЕСКИЙ КЛИК ПО КНОПКЕ "ОЧИСТИТЬ" ===
+            if (clearSlotsButton != null)
+            {
+                clearSlotsButton.onClick.Invoke();
+            }
         }
         else
         {

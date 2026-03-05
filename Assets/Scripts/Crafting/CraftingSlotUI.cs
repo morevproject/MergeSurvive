@@ -19,6 +19,9 @@ public class CraftingSlotUI : MonoBehaviour, IPointerClickHandler
     // === ОЧИСТКА СЛОТА ПО ТАПУ ===
     public void OnPointerClick(PointerEventData eventData)
     {
+        // === БЛОКИРУЕМ РУЧНУЮ ОЧИСТКУ ВО ВРЕМЯ ОТКРЫТИЯ ===
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return;
+
         if (currentItem != null)
         {
             ClearSlot();
@@ -27,6 +30,10 @@ public class CraftingSlotUI : MonoBehaviour, IPointerClickHandler
 
     public void SetItem(ItemData newItem)
     {
+        // === БЛОКИРУЕМ ПОЯВЛЕНИЕ НОВЫХ ПРЕДМЕТОВ ===
+        // Если игрок спидранит, душа просто отскочит и не попадет в слот
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return;
+
         currentItem = newItem;
         UpdateSlotUI();
         NotifyManager();

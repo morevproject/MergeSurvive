@@ -28,8 +28,6 @@ public class HintManager : MonoBehaviour
     public Button buy10Btn;
     public Button closeShopBtn;
 
-    // УБРАЛИ ЛИШНИЙ СПИСОК СЛОТОВ ОТСЮДА!
-
     private bool isAnimating = false;
 
     void Awake()
@@ -52,7 +50,6 @@ public class HintManager : MonoBehaviour
     void OnDisable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; }
     void Update() { UpdateUI(); }
 
-    // === УМНЫЙ ПОИСК СЛОТОВ ===
     private List<CraftingSlotUI> GetCraftingSlots()
     {
         if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.craftingSlots != null)
@@ -75,8 +72,13 @@ public class HintManager : MonoBehaviour
 
     public void OnHintClicked()
     {
+        // === ФИКС 1: Жесткий блок МОМЕНТАЛЬНО при клике ===
         if (isAnimating) return; 
         
+        // Не даем юзать лампочку, если рецепт УЖЕ в процессе открытия
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return; 
+
+        isAnimating = true; 
         if (hintButton != null) hintButton.interactable = false;
         
         if (PlayerStats.Instance != null && PlayerStats.Instance.HintBulbs > 0)
@@ -99,6 +101,7 @@ public class HintManager : MonoBehaviour
         else 
         {
             Debug.Log("Нет доступных комбинаций!");
+            isAnimating = false; // Снимаем блок
             if (hintButton != null) hintButton.interactable = true;
         }
     }
@@ -136,7 +139,6 @@ public class HintManager : MonoBehaviour
 
     IEnumerator AnimateHintRoutine(Recipe recipe)
     {
-        isAnimating = true;
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = false;
 
         if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
@@ -145,7 +147,6 @@ public class HintManager : MonoBehaviour
         ClearCraftingSlots();
         yield return new WaitForSeconds(0.1f);
 
-        // Берем слоты динамически
         List<CraftingSlotUI> allSlots = GetCraftingSlots();
         List<CraftingSlotUI> availableSlots = new List<CraftingSlotUI>();
         
@@ -186,13 +187,24 @@ public class HintManager : MonoBehaviour
                         if (finalData == null) finalData = Resources.Load<ItemData>("Items/" + ing.resourceName);
                         if (finalData == null) finalData = InventoryManager.Instance.GetItemDataByName(ing.resourceName);
 
-                        if (finalData != null) targetSlot.SetItem(finalData);
+                        if (finalData != null) targetSlot.SetItem(finalData); // Это запустит 2.5 сек анимацию Верстака!
                     }
                 }
             }
         }
 
         yield return new WaitForSeconds(0.2f);
+        
+        // === ФИКС 2: Идеальная синхронизация ===
+        // Лампочка ждет, пока Верстак полностью не завершит свою торжественную анимацию!
+        if (CraftingUIManager.Instance != null)
+        {
+            while (CraftingUIManager.Instance.IsCrafting)
+            {
+                yield return null;
+            }
+        }
+
         CraftingManager.Instance.DiscoverRecipe(recipe); 
         SaveProgress();
 
@@ -203,6 +215,8 @@ public class HintManager : MonoBehaviour
 
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
         if (hintButton != null) hintButton.interactable = true;
+        
+        // === Снимаем блок только в самом-самом конце! ===
         isAnimating = false;
     }
 
@@ -269,12 +283,16 @@ public class HintManager : MonoBehaviour
         }
     }
 
-    private void OpenShop() { if (shopPanel != null) shopPanel.SetActive(true); }
+    private void OpenShop() { 
+        if (shopPanel != null) shopPanel.SetActive(true); 
+        isAnimating = false; // Чтобы не заблокировать кнопку навсегда, если нет лампочек
+    }
     
     public void CloseShop() 
     { 
         if (shopPanel != null) shopPanel.SetActive(false); 
-        if (!isAnimating && hintButton != null) hintButton.interactable = true;
+        isAnimating = false; 
+        if (hintButton != null) hintButton.interactable = true;
     }
 
     private void BuyPack(int amount)

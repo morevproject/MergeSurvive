@@ -14,6 +14,10 @@ public class InventoryItemDetails : MonoBehaviour
     
     public Button findButton; 
     public Button equipButton; 
+    
+    // === НОВАЯ КНОПКА ДЛЯ ЕДЫ ===
+    public Button eatButton; 
+    
     public Button closeBackgroundButton; 
 
     private ItemData currentItem;
@@ -25,6 +29,10 @@ public class InventoryItemDetails : MonoBehaviour
         
         if (findButton != null) findButton.onClick.AddListener(OnFindButtonClicked);
         if (equipButton != null) equipButton.onClick.AddListener(OnEquipButtonClicked);
+        
+        // Подписываем новую кнопку
+        if (eatButton != null) eatButton.onClick.AddListener(OnEatButtonClicked);
+        
         if (closeBackgroundButton != null) closeBackgroundButton.onClick.AddListener(ClosePanel);
     }
 
@@ -45,24 +53,64 @@ public class InventoryItemDetails : MonoBehaviour
 
     private void UpdateButtonsVisibility(ItemData item)
     {
-        // === УМНАЯ ЛОГИКА КНОПКИ "НАЙТИ" ===
+        // 1. Умная логика кнопки "Найти"
         if (findButton != null)
         {
             bool canBeFound = false;
-            // Спрашиваем Радар: "На этой локации это есть?"
             if (ResourceFinder.Instance != null)
             {
                 canBeFound = ResourceFinder.Instance.CanBeFound(item.ItemName);
             }
-            
             findButton.gameObject.SetActive(canBeFound);
         }
 
-        // Кнопка "Надеть" (как мы делали в прошлом шаге)
+        // 2. Кнопка "Надеть" (только для экипировки)
         if (equipButton != null)
         {
             bool isEquippable = GetTargetSlotType(item).HasValue;
             equipButton.gameObject.SetActive(isEquippable);
+        }
+        
+        // === 3. УМНАЯ ЛОГИКА КНОПКИ "СЪЕСТЬ" ===
+        // Показываем кнопку ТОЛЬКО если тип предмета — Еда
+        if (eatButton != null)
+        {
+            eatButton.gameObject.SetActive(item.itemType == ItemType.Food);
+        }
+    }
+
+    // === НОВЫЙ МЕТОД ПОЕДАНИЯ (Перенесен из AvatarDropZone) ===
+    public void OnEatButtonClicked()
+    {
+        if (currentItem == null || currentItem.itemType != ItemType.Food) return;
+
+        if (PlayerStats.Instance != null)
+        {
+            int cur = PlayerStats.Instance.currentHealth;
+            int max = PlayerStats.Instance.maxHealth;
+
+            // Проверяем, не полное ли здоровье
+            if (cur < max)
+            {
+                // 1. Восстанавливаем ХП
+                PlayerStats.Instance.Heal(currentItem.healAmount);
+                Debug.Log($"[Inventory] Ням! {currentItem.GetName()} дал +{currentItem.healAmount} HP.");
+
+                // 2. Забираем 1 штуку из инвентаря
+                if (InventoryManager.Instance != null)
+                {
+                    InventoryManager.Instance.RemoveItem(currentItem, 1);
+                }
+
+                // 3. Закрываем окошко инфо, так как предмет может закончиться
+                ClosePanel(); 
+            }
+            else
+            {
+                Debug.Log("[Inventory] Отказ: Здоровье уже полное!");
+                // Если у тебя есть система всплывающих текстовых подсказок, можно добавить её сюда:
+                // FloatingTextManager.Show("Здоровье полное!");
+            }
         }
     }
 
