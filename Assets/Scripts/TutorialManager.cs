@@ -24,7 +24,7 @@ public class TutorialManager : MonoBehaviour
         
         // --- ОБНОВЛЕННАЯ ЦЕПОЧКА КРАФТА ---
         CraftingOpenedDialogue,     // 9
-        SimulateStoneDrag,          // 10
+        SimulateStoneDrag,          // 10 (Оставлен для совместимости сохранений, теперь пропускается)
         WaitForSharpStoneRecipe,    // 11
         ArrowRecipeDialogue,        // 12 (Просим игрока догадаться самому)
         WaitForArrowRecipe,         // 13 (Ждем, пока скрафтит стрелу сам)
@@ -71,11 +71,10 @@ public class TutorialManager : MonoBehaviour
     private List<GameObject> activePointers = new List<GameObject>();
 
     [Header("UI Control & Animation")]
-    public GameObject dummyIconPrefab; 
-    public Transform animationCanvas;  
     public GameObject craftButtonObj;  
 
-    // --- НОВОЕ: Элементы, которые нужно спрятать в туториале ---
+    // Убрали dummyIconPrefab и animationCanvas, так как анимация душ удалена
+
     [Header("Advanced UI (To Hide)")]
     public GameObject[] advancedUIElements;
 
@@ -114,7 +113,6 @@ public class TutorialManager : MonoBehaviour
     private void Update()
     {
         // --- ЖЕСТКАЯ БЛОКИРОВКА UI ---
-        // Рубим на корню любые попытки других скриптов включить эти кнопки!
         if (advancedUIElements != null)
         {
             foreach (var uiObj in advancedUIElements)
@@ -125,11 +123,8 @@ public class TutorialManager : MonoBehaviour
                 }
             }
         }
-        // -----------------------------
         
-        // --- НОВОЕ: ЖЕСТКАЯ БЛОКИРОВКА КНОПКИ КРАФТА ---
-        // Прячем кнопку "Создать", начиная с открытия верстака и строго ДО шага,
-        // где Няня разрешает крафтить Острый камень (WaitForSharpStoneCraft)
+        // --- ЖЕСТКАЯ БЛОКИРОВКА КНОПКИ КРАФТА ---
         if (currentStep >= TutorialStep.CraftingOpenedDialogue && currentStep < TutorialStep.WaitForSharpStoneCraft)
         {
             if (craftButtonObj != null && craftButtonObj.activeSelf)
@@ -137,7 +132,6 @@ public class TutorialManager : MonoBehaviour
                 craftButtonObj.SetActive(false);
             }
         }
-        // ----------------------------------------------
 
         if (currentStep == TutorialStep.WaitForSharpStoneRecipe)
         {
@@ -237,19 +231,19 @@ public class TutorialManager : MonoBehaviour
             case TutorialStep.CraftingOpenedDialogue:
                 if (isResuming && UIManager.Instance != null) UIManager.Instance.ToggleCrafting(true);
                 SetCraftButtonActive(false); 
-                LockAllRecipesExcept(""); // Блокируем клики по всем рецептам (но без замков!)
+                LockAllRecipesExcept(""); 
                 PlayDialogue(craftingOpenedDialogue);
                 break;
 
             case TutorialStep.SimulateStoneDrag:
-                // Принудительно открываем верстак при загрузке на этом шаге
+                // Анимация удалена. Сразу переходим к следующему шагу,
+                // чтобы туториал не застревал и логика не ломалась.
                 if (isResuming && UIManager.Instance != null) UIManager.Instance.ToggleCrafting(true);
-                StartCoroutine(SimulateDragAnimation("Stone"));
+                AdvanceStep();
                 break;
 
             case TutorialStep.WaitForSharpStoneRecipe:
                 if (isResuming && UIManager.Instance != null) UIManager.Instance.ToggleCrafting(true);
-                // Ждет крафта Острого камня в Update()
                 break;
 
             case TutorialStep.ArrowRecipeDialogue:
@@ -259,7 +253,6 @@ public class TutorialManager : MonoBehaviour
 
             case TutorialStep.WaitForArrowRecipe:
                 if (isResuming && UIManager.Instance != null) UIManager.Instance.ToggleCrafting(true);
-                // Ждет крафта Стрелы в Update()
                 break;
 
             case TutorialStep.SelectRecipeDialogue:
@@ -269,7 +262,7 @@ public class TutorialManager : MonoBehaviour
 
             case TutorialStep.WaitForRecipeClick:
                 if (isResuming && UIManager.Instance != null) UIManager.Instance.ToggleCrafting(true);
-                LockAllRecipesExcept("Sharp_Stone"); // Делаем кликабельным ТОЛЬКО Острый камень
+                LockAllRecipesExcept("Sharp_Stone"); 
                 SetCraftButtonActive(false);
                 break;
 
@@ -290,7 +283,7 @@ public class TutorialManager : MonoBehaviour
 
             case TutorialStep.WaitForArrowCraft:
                 if (isResuming && UIManager.Instance != null) UIManager.Instance.ToggleCrafting(true);
-                LockAllRecipesExcept("Stone_Arrow"); // Разрешаем кликать на стрелы
+                LockAllRecipesExcept("Stone_Arrow");
                 break;
             // -----------------------------------
 
@@ -338,11 +331,10 @@ public class TutorialManager : MonoBehaviour
 
             if (allowedResourceName == "ALL") 
             {
-                soul.SetTutorialState(true); // Разрешаем всё
+                soul.SetTutorialState(true); 
             }
             else 
             {
-                // ИСПОЛЬЗУЕМ НЕВИДИМУЮ БЛОКИРОВКУ
                 bool isAllowed = soul.itemData.ItemName == allowedResourceName;
                 soul.SetTutorialState(isAllowed); 
             }
@@ -387,60 +379,6 @@ public class TutorialManager : MonoBehaviour
                 }
             }
         }
-    }
-
-    // --- АНИМАЦИЯ ПРИЗРАЧНЫХ ИКОНОК ---
-    private IEnumerator SimulateDragAnimation(string targetResourceName)
-    {
-        SoulItemUI[] souls = FindObjectsOfType<SoulItemUI>();
-        SoulItemUI targetSoul = souls.FirstOrDefault(s => s.itemData != null && s.itemData.ItemName == targetResourceName);
-
-        if (targetSoul != null && CraftingUIManager.Instance != null && CraftingUIManager.Instance.craftingSlots.Count >= 2)
-        {
-            Vector3 startPos = targetSoul.transform.position;
-            Sprite iconToFly = targetSoul.icon.sprite;
-
-            yield return StartCoroutine(FlyIcon(iconToFly, startPos, CraftingUIManager.Instance.craftingSlots[0].transform.position, 1.0f));
-            yield return new WaitForSeconds(0.2f);
-            yield return StartCoroutine(FlyIcon(iconToFly, startPos, CraftingUIManager.Instance.craftingSlots[1].transform.position, 1.0f));
-        }
-        AdvanceStep(); 
-    }
-
-    private IEnumerator FlyIcon(Sprite sprite, Vector3 startPos, Vector3 endPos, float duration)
-    {
-        if (dummyIconPrefab == null || animationCanvas == null) yield break;
-        
-        GameObject iconObj = Instantiate(dummyIconPrefab, animationCanvas);
-        iconObj.transform.position = startPos;
-        
-        Image img = iconObj.GetComponent<Image>();
-        if (img != null) img.sprite = sprite;
-
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            Vector3 currentPos = Vector3.Lerp(startPos, endPos, t);
-            currentPos.y += Mathf.Sin(t * Mathf.PI) * 50f; 
-            iconObj.transform.position = currentPos;
-            yield return null;
-        }
-
-        float fadeDuration = 0.5f;
-        elapsed = 0f;
-        Color c = img.color;
-        
-        while (elapsed < fadeDuration)
-        {
-            elapsed += Time.deltaTime;
-            c.a = 1f - (elapsed / fadeDuration);
-            img.color = c;
-            yield return null;
-        }
-        
-        Destroy(iconObj);
     }
 
     // --- ОБЩАЯ ЛОГИКА ТУТОРИАЛА ---
@@ -534,7 +472,7 @@ public class TutorialManager : MonoBehaviour
 
     public void CheckCrafting() 
     { 
-        // Оставлено для обратной совместимости с InventoryManager
+        // Оставлено пустым для обратной совместимости
     }
 
     private IEnumerator FadeAndLoadScene() 

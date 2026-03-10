@@ -8,7 +8,7 @@ public class CraftingPanel : MonoBehaviour
     public static CraftingPanel Instance; 
 
     [Header("Core References")]
-    public CraftingSlot[] slots;          
+    public CraftingSlotUI[] slots;          // <--- ИСПРАВЛЕНО ТУТ
     public CraftingResultSlot resultSlot; 
 
     [Header("Action UI")]
@@ -40,10 +40,6 @@ public class CraftingPanel : MonoBehaviour
             createButton.onClick.AddListener(OnActionClicked);
         }
     }
-
-    // =========================================================
-    // ЛОГИКА ВЫБОРА И СОЗДАНИЯ
-    // =========================================================
 
     public void SelectRecipe(Recipe recipe)
     {
@@ -112,10 +108,6 @@ public class CraftingPanel : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // ЛОГИКА ИССЛЕДОВАНИЯ (MERGE)
-    // =========================================================
-
     public void CheckCrafting()
     {
         if (IsCrafting) return;
@@ -157,14 +149,11 @@ public class CraftingPanel : MonoBehaviour
 
         if (resultSlot != null) resultSlot.SetResult(recipe); 
         
-        // ВЕРНУЛИ ОБЫЧНЫЙ ТАЙМЕР (так как время теперь идет)
         yield return new WaitForSeconds(1.0f); 
 
-        // Очистка и логика (оставляем твой безопасный вариант с try-catch или обычный)
         foreach (var slot in slots) slot.ClearSlot(); 
         if (resultSlot != null) resultSlot.ClearSlot();
 
-        // Теперь безопасно пытаемся добавить рецепт
         try 
         {
             if (CraftingManager.Instance != null)
@@ -180,7 +169,6 @@ public class CraftingPanel : MonoBehaviour
                 }
                 else
                 {
-                    // Если тут произойдет ошибка (например в SoulListUI), верстак уже чист
                     CraftingManager.Instance.DiscoverRecipe(recipe);
                 }
             }
@@ -191,8 +179,6 @@ public class CraftingPanel : MonoBehaviour
         }
 
         IsCrafting = false;
-        
-        // Проверяем, не положил ли игрок что-то новое
         CheckCrafting(); 
     }
 
@@ -202,7 +188,6 @@ public class CraftingPanel : MonoBehaviour
         {
             warningText.text = message;
             warningPanel.SetActive(true);
-            // Тут тоже используем Realtime
             yield return new WaitForSecondsRealtime(2.0f);
             warningPanel.SetActive(false);
         }

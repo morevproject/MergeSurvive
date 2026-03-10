@@ -18,7 +18,9 @@ public class ResourceFinder : MonoBehaviour
     public Vector3 cameraOffset = new Vector3(0, 10, -10);
 
     private GameObject currentPointer;
-    private bool isSearching = false;
+    
+    // === ТЕПЕРЬ ЭТА ПЕРЕМЕННАЯ ПУБЛИЧНАЯ ===
+    public bool isSearching { get; private set; } = false;
 
     void Awake()
     {
@@ -26,35 +28,49 @@ public class ResourceFinder : MonoBehaviour
         if (mainCamera == null) mainCamera = Camera.main;
     }
 
+    public bool CanBeFound(string resourceName)
+    {
+        if (WorldInteractable.AllInteractables.Any(obj => obj != null && (obj.objectName == resourceName || obj.drops.Any(r => r.item != null && r.item.ItemName == resourceName)))) return true;
+        if (BoarAI.AllEnemies.Any(enemy => enemy != null && enemy.lootTable.Any(loot => loot.item != null && loot.item.ItemName == resourceName))) return true;
+        return false;
+    }
+
     public void FindResourceNodes(string resourceName)
     {
         if (isSearching) return;
 
-        WorldInteractable nearestObj = null;
+        Transform nearestTarget = null;
         float minDist = float.MaxValue;
         Vector3 playerPos = mainCamera.transform.position;
 
         foreach (var obj in WorldInteractable.AllInteractables)
         {
             if (obj == null) continue;
-
             bool dropsResource = obj.drops.Any(rule => rule.item != null && rule.item.ItemName == resourceName);
             if (!dropsResource && obj.objectName == resourceName) dropsResource = true;
 
             if (dropsResource)
             {
                 float d = Vector3.Distance(playerPos, obj.transform.position);
-                if (d < minDist)
-                {
-                    minDist = d;
-                    nearestObj = obj;
-                }
+                if (d < minDist) { minDist = d; nearestTarget = obj.transform; }
             }
         }
 
-        if (nearestObj != null)
+        foreach (var enemy in BoarAI.AllEnemies)
         {
-            StartCoroutine(ShowObjectRoutine(nearestObj.transform));
+            if (enemy == null) continue;
+            bool dropsResource = enemy.lootTable.Any(loot => loot.item != null && loot.item.ItemName == resourceName);
+            
+            if (dropsResource)
+            {
+                float d = Vector3.Distance(playerPos, enemy.transform.position);
+                if (d < minDist) { minDist = d; nearestTarget = enemy.transform; }
+            }
+        }
+
+        if (nearestTarget != null)
+        {
+            StartCoroutine(ShowObjectRoutine(nearestTarget));
         }
         else
         {
@@ -65,54 +81,47 @@ public class ResourceFinder : MonoBehaviour
     IEnumerator ShowObjectRoutine(Transform target)
     {
         isSearching = true;
-        
-        // 1. ПЕРЕХОДИМ В РЕЖИМ КАТСЦЕНЫ
+
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.SetState(GameStateManager.GameState.Cutscene);
 
+        // УБРАЛИ Time.timeScale = 0f; Мир снова живет!
+
         if (cameraFollowScript != null) cameraFollowScript.enabled = false;
-        
-        if (playerController != null) 
-        {
-            playerController.enabled = false;
-            Rigidbody rb = playerController.GetComponent<Rigidbody>();
-            if (rb != null && !rb.isKinematic) rb.velocity = Vector3.zero;
-        }
+        if (playerController != null) playerController.enabled = false;
 
         if (CraftingPanel.Instance != null) 
             CraftingPanel.Instance.gameObject.SetActive(false); 
 
         Vector3 originalPos = mainCamera.transform.position;
         Quaternion originalRot = mainCamera.transform.rotation;
-        Vector3 targetPos = target.position + cameraOffset;
-        Quaternion targetRot = Quaternion.LookRotation(target.position - targetPos);
 
-        // Полет ТУДА
+        // Полет ТУДА (Вернули обычный Time.deltaTime)
         float t = 0;
         while (t < 1)
         {
             t += Time.deltaTime * cameraTransitionSpeed;
+            
+            Vector3 targetPos = target.position + cameraOffset;
+            Quaternion targetRot = Quaternion.LookRotation(target.position - mainCamera.transform.position);
+            
             mainCamera.transform.position = Vector3.Lerp(originalPos, targetPos, t);
             mainCamera.transform.rotation = Quaternion.Lerp(originalRot, targetRot, t);
             yield return null;
         }
 
-        // Поинтер
         if (pointerPrefab != null)
         {
             Vector3 pointerPos = target.position;
             Collider col = target.GetComponent<Collider>();
-            if (col != null)
-            {
-                pointerPos = new Vector3(target.position.x, col.bounds.max.y + 2.0f, target.position.z);
-            }
-            else
-            {
-                pointerPos += Vector3.up * 2.0f;
-            }
+            if (col != null) pointerPos = new Vector3(target.position.x, col.bounds.max.y + 1.5f, target.position.z);
+            else pointerPos += Vector3.up * 1.5f;
+            
             currentPointer = Instantiate(pointerPrefab, pointerPos, Quaternion.identity);
+            currentPointer.transform.SetParent(target); 
         }
 
+        // Вернули обычный WaitForSeconds
         yield return new WaitForSeconds(showDuration);
 
         if (currentPointer != null) Destroy(currentPointer);
@@ -122,33 +131,25 @@ public class ResourceFinder : MonoBehaviour
         while (t < 1)
         {
             t += Time.deltaTime * cameraTransitionSpeed;
-            mainCamera.transform.position = Vector3.Lerp(targetPos, originalPos, t);
-            mainCamera.transform.rotation = Quaternion.Lerp(targetRot, originalRot, t);
+            mainCamera.transform.position = Vector3.Lerp(target.position + cameraOffset, originalPos, t);
+            mainCamera.transform.rotation = Quaternion.Lerp(Quaternion.LookRotation(target.position - (target.position + cameraOffset)), originalRot, t);
             yield return null;
         }
 
-        // 2. ВОЗВРАЩЕНИЕ В ИГРУ
         isSearching = false;
 
-        if (cameraFollowScript != null) cameraFollowScript.enabled = true;
-        
-        if (playerController != null) 
-        {
-            playerController.enabled = true;
-            Rigidbody rb = playerController.GetComponent<Rigidbody>();
-            if (rb != null) rb.WakeUp();
-        }
-
-        // --- ИСПРАВЛЕНИЕ: Используем Playing вместо Gameplay ---
         if (GameStateManager.Instance != null)
-        {
             GameStateManager.Instance.SetState(GameStateManager.GameState.Playing);
-        }
         else
         {
             Cursor.visible = true; 
             Cursor.lockState = CursorLockMode.None; 
         }
+
+        // УБРАЛИ Time.timeScale = 1f;
+
+        if (cameraFollowScript != null) cameraFollowScript.enabled = true;
+        if (playerController != null) playerController.enabled = true;
 
         Debug.Log("Поиск завершен. Управление возвращено.");
     }

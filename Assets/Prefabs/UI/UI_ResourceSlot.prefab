@@ -268,7 +268,6 @@ GameObject:
   - component: {fileID: 7280534830500835718}
   - component: {fileID: 7505039588247607498}
   - component: {fileID: 6885240242689784182}
-  - component: {fileID: -1653480531135528245}
   - component: {fileID: 2123302938471158567}
   - component: {fileID: 7331327005660883879}
   - component: {fileID: 2414204548675743990}
@@ -369,26 +368,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_ShowMaskGraphic: 0
---- !u!114 &-1653480531135528245
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3342090467226639459}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b31810dec8c37f4080c20ce3882e117, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  image: {fileID: 0}
-  currentSlot:
-    itemData: {fileID: 0}
-    stackSize: 0
-  canvas: {fileID: 0}
-  inventorySlotRef:
-    itemData: {fileID: 0}
-    stackSize: 0
 --- !u!225 &2123302938471158567
 CanvasGroup:
   m_ObjectHideFlags: 0

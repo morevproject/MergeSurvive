@@ -1,105 +1,90 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class CraftingSlotUI : MonoBehaviour, IDropHandler
+public class CraftingSlotUI : MonoBehaviour, IPointerClickHandler
 {
-    [Header("UI References")]
-    [SerializeField] private Image slotIconImage;
+    [Header("UI")]
+    public Image iconImage;     
+    public Sprite defaultSprite; 
 
-    [Header("Slot Data")]
-    public string resourceName = ""; 
-    public Sprite resourceIcon;
-    
-    // Новое поле: нам нужен реальный объект ItemData, чтобы крафт работал
-    public ItemData currentItem; 
+    [Header("Data")]
+    public ItemData currentItem;
 
-    public bool IsEmpty => string.IsNullOrEmpty(resourceName);
-
-    void Awake()
+    void Start()
     {
-        ClearSlot();
+        UpdateSlotUI();
     }
-    
-    // Вспомогательный метод для получения предмета (нужен для Manger)
+
+    // === ОЧИСТКА СЛОТА ПО ТАПУ ===
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        // === БЛОКИРУЕМ РУЧНУЮ ОЧИСТКУ ВО ВРЕМЯ ОТКРЫТИЯ ===
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return;
+
+        if (currentItem != null)
+        {
+            ClearSlot();
+        }
+    }
+
+    public void SetItem(ItemData newItem)
+    {
+        // === БЛОКИРУЕМ ПОЯВЛЕНИЕ НОВЫХ ПРЕДМЕТОВ ===
+        // Если игрок спидранит, душа просто отскочит и не попадет в слот
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return;
+
+        currentItem = newItem;
+        UpdateSlotUI();
+        NotifyManager();
+    }
+
+    public void ClearSlot()
+    {
+        currentItem = null;
+        UpdateSlotUI();
+        NotifyManager();
+    }
+
+    private void NotifyManager()
+    {
+        if (CraftingUIManager.Instance != null)
+        {
+            CraftingUIManager.Instance.OnSlotUpdated();
+        }
+        else if (CraftingPanel.Instance != null)
+        {
+            CraftingPanel.Instance.CheckCrafting();
+        }
+    }
+
     public ItemData GetResourceInSlot()
     {
         return currentItem;
     }
 
-    // --- ИСПРАВЛЕННЫЙ МЕТОД DROPHANDLER ---
-    public void OnDrop(PointerEventData eventData)
+    private void UpdateSlotUI()
     {
-        GameObject draggedObject = eventData.pointerDrag;
-        if (draggedObject == null) return;
+        if (iconImage == null) return;
 
-        // 1. Проверяем, не перетащили ли мы Душу (рецепт) из списка
-        SoulItemUI soulUI = draggedObject.GetComponent<SoulItemUI>();
-        if (soulUI != null && soulUI.itemData != null)
+        if (currentItem != null)
         {
-            UpdateSlot(soulUI.itemData);
-            return;
+            iconImage.sprite = currentItem.Icon;
+            iconImage.color = Color.white;
+            iconImage.enabled = true;
         }
-
-        // 2. Проверяем, не перетащили ли мы Предмет из инвентаря
-        UIDraggableItem draggable = draggedObject.GetComponent<UIDraggableItem>();
-        if (draggable != null && draggable.inventorySlotRef != null)
+        else
         {
-            UpdateSlot(draggable.inventorySlotRef.itemData);
-            return;
-        }
-    }
-
-    public void UpdateSlot(ItemData newItem)
-    {
-        if (newItem == null) return;
-        
-        currentItem = newItem;
-        resourceName = newItem.ItemName;
-        resourceIcon = newItem.Icon;
-
-        UpdateSlotVisual();
-
-        // Сообщаем менеджеру
-        if (CraftingUIManager.Instance != null)
-            CraftingUIManager.Instance.OnSlotUpdated();
-    }
-
-    private void UpdateSlotVisual()
-    {
-        if (slotIconImage != null)
-        {
-            slotIconImage.sprite = resourceIcon;
-            slotIconImage.enabled = (resourceIcon != null);
-
-            // --- ТВОЯ ЛОГИКА РАСТЯГИВАНИЯ ИКОНКИ (СОХРАНЕНО) ---
-            if (resourceIcon != null)
+            if (defaultSprite != null)
             {
-                RectTransform rt = slotIconImage.rectTransform;
-                rt.anchorMin = Vector2.zero;
-                rt.anchorMax = Vector2.one;
-                rt.offsetMin = Vector2.zero; 
-                rt.offsetMax = Vector2.zero; 
-                rt.localScale = Vector3.one;
+                iconImage.sprite = defaultSprite;
+                iconImage.enabled = true;
             }
-        }
-    }
-
-    public void ClearSlot()
-    {
-        resourceName = "";
-        resourceIcon = null;
-        currentItem = null;
-
-        if (slotIconImage != null)
-        {
-            slotIconImage.enabled = false;
-            slotIconImage.sprite = null;
-        }
-
-        if (CraftingUIManager.Instance != null)
-        {
-            CraftingUIManager.Instance.OnSlotUpdated();
+            else
+            {
+                iconImage.sprite = null;
+                iconImage.enabled = false;
+            }
         }
     }
 }

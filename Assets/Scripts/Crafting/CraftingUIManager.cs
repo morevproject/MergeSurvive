@@ -7,8 +7,8 @@ public class CraftingUIManager : MonoBehaviour
     public static CraftingUIManager Instance;
 
     [Header("UI References")]
-    public List<CraftingSlot> craftingSlots; // Слоты крафта
-    public CraftingResultSlot resultSlot;    // Слот результата
+    public List<CraftingSlotUI> craftingSlots; 
+    public CraftingResultSlot resultSlot;    
 
     public bool IsCrafting { get; private set; }
 
@@ -17,12 +17,17 @@ public class CraftingUIManager : MonoBehaviour
         Instance = this;
     }
 
-    // ИСПРАВЛЕНИЕ: Вернул название OnSlotUpdated, чтобы CraftingSlotUI не ругался
+    // Если игрок закроет Верстак во время красивой анимации открытия рецепта,
+    // мы снимаем блокировку стола, чтобы он не сломался к следующему открытию!
+    private void OnDisable()
+    {
+        IsCrafting = false; 
+    }
+
     public void OnSlotUpdated()
     {
         if (IsCrafting) return;
 
-        // Собираем список предметов (ItemData) из слотов
         List<ItemData> ingredients = new List<ItemData>();
         bool hasItems = false;
 
@@ -30,7 +35,6 @@ public class CraftingUIManager : MonoBehaviour
         {
             if (slot == null) continue;
 
-            // Берем данные предмета из слота
             ItemData item = slot.GetResourceInSlot();
 
             if (item != null)
@@ -40,14 +44,12 @@ public class CraftingUIManager : MonoBehaviour
             }
         }
 
-        // Если слоты пустые — очищаем результат
         if (!hasItems)
         {
             if (resultSlot != null) resultSlot.ClearSlot();
             return;
         }
 
-        // Ищем рецепт через менеджер
         Recipe foundRecipe = CraftingManager.Instance.TryMergeItems(ingredients);
 
         if (foundRecipe != null)
@@ -62,54 +64,84 @@ public class CraftingUIManager : MonoBehaviour
 
     IEnumerator ProcessDiscovery(Recipe recipe)
     {
-        IsCrafting = true;
+        IsCrafting = true; // Сразу вешаем жесткий замок!
 
-        // Показываем, что получится
+        // === УМНЫЙ ФЕЙСКОНТРОЛЬ ===
+        // Собираем список того, что РЕАЛЬНО нужно для рецепта
+        List<string> requiredItems = new List<string>();
+        foreach (var req in recipe.requiredIngredients)
+        {
+            for (int i = 0; i < req.amount; i++) requiredItems.Add(req.resourceName);
+        }
+
+        // Проходим с НАЧАЛА В КОНЕЦ. Оставляем первые правильные души,
+        // а всё, что не вписывается (даже если оно затесалось в середине), удаляем!
+        for (int i = 0; i < craftingSlots.Count; i++)
+        {
+            var slot = craftingSlots[i];
+            if (slot != null && slot.GetResourceInSlot() != null)
+            {
+                string resName = slot.GetResourceInSlot().ItemName;
+                
+                // Если душа нужна - вычеркиваем её из "списка ожидания" и оставляем на столе
+                if (requiredItems.Contains(resName))
+                {
+                    requiredItems.Remove(resName); 
+                }
+                else
+                {
+                    // Душа лишняя - испаряем!
+                    slot.ClearSlot(); 
+                }
+            }
+        }
+        // ============================
+
+        // Показываем результат (Иконку нового рецепта)
         if (resultSlot != null) resultSlot.SetResult(recipe);
 
-        yield return new WaitForSeconds(1.0f);
+        // === ДАЕМ ВРЕМЯ ДЛЯ АНИМАЦИИ (2.5 сек) ===
+        yield return new WaitForSeconds(2.5f);
 
-        // Открываем рецепт
+        // Торжественно открываем рецепт
         CraftingManager.Instance.DiscoverRecipe(recipe);
 
-        // Очищаем ингредиенты
+        // Финальная зачистка стола после открытия
         foreach (var slot in craftingSlots)
         {
             if (slot != null) slot.ClearSlot();
         }
 
-        // Очищаем результат
         if (resultSlot != null) resultSlot.ClearSlot();
 
+        // Снимаем блок, игрок снова может кликать
         IsCrafting = false;
         
-        // Проверяем еще раз (на случай, если остались предметы)
         OnSlotUpdated();
     }
 
-    // =========================================================
-    // НОВЫЙ МЕТОД ДЛЯ КНОПКИ "ОЧИСТИТЬ"
-    // =========================================================
     public void ClearAllSlots()
     {
-        // Не даем очищать, если прямо сейчас идет анимация крафта
         if (IsCrafting) return;
 
-        // 1. Пробегаем по всем слотам крафта и чистим их
+        IsCrafting = true; // Блокируем, чтобы не вызвать случайное открытие
+
         foreach (var slot in craftingSlots)
         {
             if (slot != null)
             {
-                slot.ClearSlot(); // Этот метод просто удаляет иконку и ItemData
+                slot.ClearSlot(); 
             }
         }
 
-        // 2. Очищаем слот результата
         if (resultSlot != null)
         {
             resultSlot.ClearSlot();
         }
 
+        IsCrafting = false; 
+
+        OnSlotUpdated(); 
         Debug.Log("UI Верстака очищен по кнопке.");
     }
 }

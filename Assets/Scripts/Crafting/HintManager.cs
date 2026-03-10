@@ -28,10 +28,8 @@ public class HintManager : MonoBehaviour
     public Button buy10Btn;
     public Button closeShopBtn;
 
-    [Header("Crafting Slots")]
-    public List<CraftingSlot> craftingSlots; 
-
     private bool isAnimating = false;
+    private List<GameObject> activeFlyingIcons = new List<GameObject>();
 
     void Awake()
     {
@@ -50,8 +48,52 @@ public class HintManager : MonoBehaviour
     void Start() { UpdateUI(); }
 
     void OnEnable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated += UpdateUI; }
-    void OnDisable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; }
+    
+    // === БЕЗОПАСНЫЙ ОТКАТ (БЕЗ МАХИНАЦИЙ С ВАЛЮТОЙ) ===
+    void OnDisable() 
+    { 
+        if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; 
+
+        if (isAnimating)
+        {
+            // Мы больше не возвращаем лампочку здесь, потому что мы её ЕЩЕ НЕ ТРАТИЛИ!
+
+            foreach (var icon in activeFlyingIcons)
+            {
+                if (icon != null) Destroy(icon);
+            }
+            activeFlyingIcons.Clear();
+
+            List<CraftingSlotUI> allSlots = GetCraftingSlots();
+            foreach (var slot in allSlots) 
+            {
+                if (slot != null) slot.ClearSlot(); 
+            }
+
+            isAnimating = false;
+            if (hintButton != null) hintButton.interactable = true;
+            if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
+
+            // Нам даже не нужно вызывать SaveProgress() при прерывании, 
+            // так как мы ничего не меняли в инвентаре или статах!
+            Debug.LogWarning("Верстак закрыт во время подсказки! Анимация прервана, лампочка сохранена.");
+        }
+    }
+
     void Update() { UpdateUI(); }
+
+    private List<CraftingSlotUI> GetCraftingSlots()
+    {
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.craftingSlots != null)
+        {
+            return CraftingUIManager.Instance.craftingSlots;
+        }
+        if (CraftingPanel.Instance != null && CraftingPanel.Instance.slots != null)
+        {
+            return CraftingPanel.Instance.slots.ToList();
+        }
+        return new List<CraftingSlotUI>();
+    }
 
     public void UpdateUI()
     {
@@ -63,8 +105,9 @@ public class HintManager : MonoBehaviour
     public void OnHintClicked()
     {
         if (isAnimating) return; 
-        
-        // 1. ЖЕСТКАЯ БЛОКИРОВКА: Выключаем кнопку от спама!
+        if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return; 
+
+        isAnimating = true; 
         if (hintButton != null) hintButton.interactable = false;
         
         if (PlayerStats.Instance != null && PlayerStats.Instance.HintBulbs > 0)
@@ -87,7 +130,7 @@ public class HintManager : MonoBehaviour
         else 
         {
             Debug.Log("Нет доступных комбинаций!");
-            // Возвращаем кнопку, если анимация не началась
+            isAnimating = false; 
             if (hintButton != null) hintButton.interactable = true;
         }
     }
@@ -125,20 +168,18 @@ public class HintManager : MonoBehaviour
 
     IEnumerator AnimateHintRoutine(Recipe recipe)
     {
-        isAnimating = true;
-        // Запрещаем любые клики по инвентарю и слотам
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = false;
 
-        if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
-        SaveProgress();
+        // УБРАЛИ СПИСАНИЕ ЛАМПОЧКИ ОТСЮДА!
 
-        // Если в слотах лежали НАСТОЯЩИЕ вещи игрока - возвращаем их в инвентарь
         ClearCraftingSlots();
         yield return new WaitForSeconds(0.1f);
 
-        List<CraftingSlot> availableSlots = new List<CraftingSlot>();
-        foreach(var s in craftingSlots) {
-             if(s.GetResourceInSlot() == null) availableSlots.Add(s);
+        List<CraftingSlotUI> allSlots = GetCraftingSlots();
+        List<CraftingSlotUI> availableSlots = new List<CraftingSlotUI>();
+        
+        foreach(var s in allSlots) {
+             if(s != null && s.GetResourceInSlot() == null) availableSlots.Add(s);
         }
 
         foreach (var ing in recipe.requiredIngredients)
@@ -147,7 +188,7 @@ public class HintManager : MonoBehaviour
             {
                 if (availableSlots.Count > 0)
                 {
-                    CraftingSlot targetSlot = availableSlots[0];
+                    CraftingSlotUI targetSlot = availableSlots[0]; 
                     availableSlots.RemoveAt(0); 
 
                     Sprite iconToFly = null;
@@ -174,25 +215,42 @@ public class HintManager : MonoBehaviour
                         if (finalData == null) finalData = Resources.Load<ItemData>("Items/" + ing.resourceName);
                         if (finalData == null) finalData = InventoryManager.Instance.GetItemDataByName(ing.resourceName);
 
-                        if (finalData != null) targetSlot.SetItem(finalData);
+                        if (finalData != null) targetSlot.SetItem(finalData); 
                     }
                 }
             }
         }
 
         yield return new WaitForSeconds(0.2f);
-        CraftingManager.Instance.DiscoverRecipe(recipe); 
-        SaveProgress();
-
-        // 2. ФИКС ЭКСПЛОЙТА: Молча испаряем предметы-подсказки из слотов!
-        foreach (var slot in craftingSlots) 
+        
+        if (CraftingUIManager.Instance != null)
         {
-            if (slot != null) slot.ClearSlot(); // Используем ClearSlot без возврата в инвентарь
+            while (CraftingUIManager.Instance.IsCrafting)
+            {
+                yield return null;
+            }
         }
 
-        // Включаем всё обратно
+        // === ИДЕАЛЬНЫЙ ФИНАЛ: ОПЛАТА ПРИ ПОЛУЧЕНИИ ===
+        
+        // 1. Открываем рецепт
+        CraftingManager.Instance.DiscoverRecipe(recipe); 
+        
+        // 2. Списываем лампочку ТОЛЬКО СЕЙЧАС
+        if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
+        
+        // 3. Сохраняем весь прогресс разом (И рецепт, и списание)
+        SaveProgress();
+        // ==============================================
+
+        foreach (var slot in allSlots) 
+        {
+            if (slot != null) slot.ClearSlot(); 
+        }
+
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
         if (hintButton != null) hintButton.interactable = true;
+        
         isAnimating = false;
     }
 
@@ -213,11 +271,13 @@ public class HintManager : MonoBehaviour
         return fallbackPos; 
     }
 
-    IEnumerator FlyIconToSlot(Sprite sprite, Vector3 startWorldPos, CraftingSlot targetSlot, float duration)
+    public IEnumerator FlyIconToSlot(Sprite sprite, Vector3 startWorldPos, CraftingSlotUI targetSlot, float duration)
     {
         if (flyingIconPrefab == null || animationParent == null) yield break;
 
         GameObject iconObj = Instantiate(flyingIconPrefab, animationParent);
+        activeFlyingIcons.Add(iconObj);
+
         iconObj.transform.localScale = Vector3.one; 
         iconObj.transform.position = startWorldPos; 
         
@@ -241,27 +301,39 @@ public class HintManager : MonoBehaviour
             if (iconObj != null) iconObj.transform.position = Vector3.Lerp(realStartPos, endPos, t);
             yield return null;
         }
-        if (iconObj != null) Destroy(iconObj);
+        
+        if (iconObj != null) 
+        {
+            activeFlyingIcons.Remove(iconObj);
+            Destroy(iconObj);
+        }
     }
 
     private void ClearCraftingSlots()
     {
-        if (craftingSlots == null) return;
-        foreach (var slot in craftingSlots) {
+        List<CraftingSlotUI> allSlots = GetCraftingSlots();
+        foreach (var slot in allSlots) {
+            if (slot == null) continue; 
+            
             if (slot.GetResourceInSlot() != null) {
-                InventoryManager.Instance.AddItem(slot.GetResourceInSlot(), 1); 
+                if (InventoryManager.Instance != null) {
+                    InventoryManager.Instance.AddItem(slot.GetResourceInSlot(), 1); 
+                }
                 slot.ClearSlot(); 
             }
         }
     }
 
-    private void OpenShop() { if (shopPanel != null) shopPanel.SetActive(true); }
+    private void OpenShop() { 
+        if (shopPanel != null) shopPanel.SetActive(true); 
+        isAnimating = false; 
+    }
     
     public void CloseShop() 
     { 
         if (shopPanel != null) shopPanel.SetActive(false); 
-        // Разблокируем кнопку лампочки при закрытии магазина, если анимация не идет
-        if (!isAnimating && hintButton != null) hintButton.interactable = true;
+        isAnimating = false; 
+        if (hintButton != null) hintButton.interactable = true;
     }
 
     private void BuyPack(int amount)

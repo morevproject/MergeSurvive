@@ -10,14 +10,12 @@ public class InteractionUIManager : MonoBehaviour
     [SerializeField] private Text interactText;         
 
     [Header("Настройки анимации")]
-    public float handGatherDelay = 3.15f; // Для сбора руками (мелкий)
-    public float toolGatherDelay = 0.5f;  // Для удара топором/киркой (мужик)
-    
-    // === ТА САМАЯ ПОТЕРЯННАЯ ПЕРЕМЕННАЯ ===
-    public float toolGatherFinishDelay = 0.6f; // Ожидание после удара, чтобы доиграть анимацию
+    public float handGatherDelay = 3.15f; 
+    public float toolGatherDelay = 0.5f;  
+    public float toolGatherFinishDelay = 0.6f; 
 
     private WorldInteractable currentInteractable;
-    public bool isGathering = false; // Защита от спама кнопкой
+    public bool isGathering = false; 
 
     private void Awake()
     {
@@ -25,35 +23,46 @@ public class InteractionUIManager : MonoBehaviour
         HideInteraction(); 
     }
 
-    public void ShowInteraction(WorldInteractable interactable)
+    private void Update()
     {
-        if (UIManager.Instance != null)
-        {
-            if (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode)
-            {
-                HideInteraction();
-                return;
-            }
-        }
-        
-        if (isGathering) return; 
-        
         if (interactButton == null) return;
 
+        if (currentInteractable != null)
+        {
+            bool isMenuOpen = UIManager.Instance != null && (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode);
+            bool isAttacking = PlayerCombatController.Instance != null && PlayerCombatController.Instance.IsAttacking;
+
+            bool shouldBeVisible = !isMenuOpen && !isGathering && !isAttacking;
+
+            if (interactButton.activeSelf != shouldBeVisible)
+            {
+                interactButton.SetActive(shouldBeVisible);
+            }
+        }
+        else
+        {
+            if (interactButton.activeSelf)
+            {
+                interactButton.SetActive(false);
+            }
+        }
+    }
+
+    public void ShowInteraction(WorldInteractable interactable)
+    {
         currentInteractable = interactable;
-        interactButton.SetActive(true);
     }
 
     public void HideInteraction()
     {
         if (isGathering) return; 
-        
         currentInteractable = null; 
-        if (interactButton != null) interactButton.SetActive(false);
     }
 
     public void OnInteractButtonPressed()
     {
+        if (PlayerCombatController.Instance != null && PlayerCombatController.Instance.IsAttacking) return;
+
         if (currentInteractable != null && !isGathering)
         {
             StartCoroutine(GatherWithDelayRoutine());
@@ -62,12 +71,9 @@ public class InteractionUIManager : MonoBehaviour
 
     private IEnumerator GatherWithDelayRoutine()
     {
-        // === АНТИ-СПАМ: Защита от старта второй корутины ===
         if (isGathering) yield break; 
         
         isGathering = true; 
-        
-        if (interactButton != null) interactButton.SetActive(false);
 
         if (InteractionHandler.Instance != null)
         {
@@ -100,13 +106,20 @@ public class InteractionUIManager : MonoBehaviour
         {
             yield return new WaitForSeconds(finishDelay);
         }
-
-        isGathering = false;
         
         if (InteractionHandler.Instance != null)
         {
             InteractionHandler.Instance.ForceRefresh();
         }
+
+        // === ПРЕДОХРАНИТЕЛЬ ОТ "СОСТОЯНИЯ ГОНКИ" ===
+        // Ждем 0.2 секунды, чтобы дать Аниматору и скриптам передвижения 
+        // 100% времени на полное возвращение управления игроку ДО того, 
+        // как мы снимем флаг isGathering и покажем кнопку атаки.
+        yield return new WaitForSeconds(1.9f);
+        // ============================================
+
+        isGathering = false; 
     }
 
     private void PlayGatheringEffects()

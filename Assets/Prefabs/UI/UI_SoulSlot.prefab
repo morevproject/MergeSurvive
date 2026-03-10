@@ -163,9 +163,8 @@ GameObject:
   - component: {fileID: 8259129528513706341}
   - component: {fileID: 5839563134708038783}
   - component: {fileID: 5744074377836273972}
-  - component: {fileID: 1553310689801990109}
-  - component: {fileID: 4987231493621013147}
   - component: {fileID: 8558357007317118239}
+  - component: {fileID: 1643677408458635155}
   m_Layer: 5
   m_Name: UI_SoulSlot
   m_TagString: Untagged
@@ -248,38 +247,6 @@ MonoBehaviour:
   resourceName: 
   currentAmount: 0
   itemData: {fileID: 0}
---- !u!114 &1553310689801990109
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3924629213245637368}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b31810dec8c37f4080c20ce3882e117, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  image: {fileID: 0}
-  currentSlot:
-    itemData: {fileID: 0}
-    stackSize: 0
-  canvas: {fileID: 0}
-  inventorySlotRef:
-    itemData: {fileID: 0}
-    stackSize: 0
---- !u!225 &4987231493621013147
-CanvasGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3924629213245637368}
-  m_Enabled: 1
-  m_Alpha: 1
-  m_Interactable: 1
-  m_BlocksRaycasts: 1
-  m_IgnoreParentGroups: 0
 --- !u!114 &8558357007317118239
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -295,4 +262,18 @@ MonoBehaviour:
   icon: {fileID: 0}
   soulNameText: {fileID: 0}
   lockedOverlay: {fileID: 3874903439573057690}
+  itemData: {fileID: 0}
+  isTutorialLocked: 0
+--- !u!114 &1643677408458635155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3924629213245637368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 571ba318f4a06ab43b6be4d0ddd63a99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   itemData: {fileID: 0}
