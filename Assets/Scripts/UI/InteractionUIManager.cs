@@ -10,14 +10,12 @@ public class InteractionUIManager : MonoBehaviour
     [SerializeField] private Text interactText;         
 
     [Header("Настройки анимации")]
-    public float handGatherDelay = 3.15f; // Для сбора руками (мелкий)
-    public float toolGatherDelay = 0.5f;  // Для удара топором/киркой (мужик)
-    
-    // === ТА САМАЯ ПОТЕРЯННАЯ ПЕРЕМЕННАЯ ===
-    public float toolGatherFinishDelay = 0.6f; // Ожидание после удара, чтобы доиграть анимацию
+    public float handGatherDelay = 3.15f; 
+    public float toolGatherDelay = 0.5f;  
+    public float toolGatherFinishDelay = 0.6f; 
 
     private WorldInteractable currentInteractable;
-    public bool isGathering = false; // Защита от спама кнопкой
+    public bool isGathering = false; 
 
     private void Awake()
     {
@@ -25,35 +23,55 @@ public class InteractionUIManager : MonoBehaviour
         HideInteraction(); 
     }
 
-    public void ShowInteraction(WorldInteractable interactable)
+    // === УМНОЕ ОБНОВЛЕНИЕ КНОПКИ ===
+    private void Update()
     {
-        if (UIManager.Instance != null)
-        {
-            if (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode)
-            {
-                HideInteraction();
-                return;
-            }
-        }
-        
-        if (isGathering) return; 
-        
         if (interactButton == null) return;
 
+        // Если у нас есть цель для сбора (мы стоим рядом с ресурсом)
+        if (currentInteractable != null)
+        {
+            // Проверяем все блокирующие факторы
+            bool isMenuOpen = UIManager.Instance != null && (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode);
+            bool isAttacking = PlayerCombatController.Instance != null && PlayerCombatController.Instance.IsAttacking;
+
+            // Кнопка должна быть видна ТОЛЬКО если мы не в меню, не собираем и не атакуем
+            bool shouldBeVisible = !isMenuOpen && !isGathering && !isAttacking;
+
+            // Включаем или выключаем кнопку только если её текущее состояние не совпадает с нужным
+            if (interactButton.activeSelf != shouldBeVisible)
+            {
+                interactButton.SetActive(shouldBeVisible);
+            }
+        }
+        else
+        {
+            // Если цели нет, железобетонно прячем кнопку
+            if (interactButton.activeSelf)
+            {
+                interactButton.SetActive(false);
+            }
+        }
+    }
+
+    public void ShowInteraction(WorldInteractable interactable)
+    {
+        // Просто запоминаем цель. Метод Update сам включит кнопку, когда будет безопасно!
         currentInteractable = interactable;
-        interactButton.SetActive(true);
     }
 
     public void HideInteraction()
     {
         if (isGathering) return; 
         
+        // Забываем цель. Update сам спрячет кнопку.
         currentInteractable = null; 
-        if (interactButton != null) interactButton.SetActive(false);
     }
 
     public void OnInteractButtonPressed()
     {
+        if (PlayerCombatController.Instance != null && PlayerCombatController.Instance.IsAttacking) return;
+
         if (currentInteractable != null && !isGathering)
         {
             StartCoroutine(GatherWithDelayRoutine());
@@ -62,12 +80,11 @@ public class InteractionUIManager : MonoBehaviour
 
     private IEnumerator GatherWithDelayRoutine()
     {
-        // === АНТИ-СПАМ: Защита от старта второй корутины ===
         if (isGathering) yield break; 
         
         isGathering = true; 
         
-        if (interactButton != null) interactButton.SetActive(false);
+        // Кнопка спрячется сама через Update, так как isGathering стало true
 
         if (InteractionHandler.Instance != null)
         {
@@ -101,7 +118,7 @@ public class InteractionUIManager : MonoBehaviour
             yield return new WaitForSeconds(finishDelay);
         }
 
-        isGathering = false;
+        isGathering = false; // Как только закончили, Update снова покажет кнопку!
         
         if (InteractionHandler.Instance != null)
         {

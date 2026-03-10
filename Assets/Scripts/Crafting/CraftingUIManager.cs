@@ -17,6 +17,13 @@ public class CraftingUIManager : MonoBehaviour
         Instance = this;
     }
 
+    // ≈сли игрок закроет ¬ерстак во врем€ красивой анимации открыти€ рецепта,
+    // мы снимаем блокировку стола, чтобы он не сломалс€ к следующему открытию!
+    private void OnDisable()
+    {
+        IsCrafting = false; 
+    }
+
     public void OnSlotUpdated()
     {
         if (IsCrafting) return;

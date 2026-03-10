@@ -22,12 +22,10 @@ public class CraftingDetailsUI : MonoBehaviour
     public Button closeButton;
     public Button backgroundCloseButton; 
     
-    // === НОВАЯ КНОПКА ДЛЯ ОЧИСТКИ (Идея от игрока!) ===
     public Button clearSlotsButton; 
 
     private Recipe currentRecipe;
     
-    // --- ДЛЯ ДИНАМИЧЕСКОГО ОБНОВЛЕНИЯ ---
     private List<CraftingIngredientUI> spawnedIngredients = new List<CraftingIngredientUI>();
     private float updateTimer = 0f;
 
@@ -36,7 +34,6 @@ public class CraftingDetailsUI : MonoBehaviour
         Instance = this;
         if (detailsWindow != null) detailsWindow.SetActive(false);
 
-        // Авто-подписка на кнопки
         if (createButton != null) 
         {
             createButton.onClick.RemoveAllListeners();
@@ -49,10 +46,10 @@ public class CraftingDetailsUI : MonoBehaviour
 
     private void Update()
     {
-        // Проверяем инвентарь 2 раза в секунду, пока открыто окно
         if (detailsWindow != null && detailsWindow.activeInHierarchy && currentRecipe != null)
         {
             updateTimer += Time.deltaTime;
+            // Проверяем каждые 0.5 сек (в том числе и место в очереди!)
             if (updateTimer >= 0.5f) 
             {
                 updateTimer = 0f;
@@ -68,7 +65,6 @@ public class CraftingDetailsUI : MonoBehaviour
 
         if (detailsWindow != null) detailsWindow.SetActive(true);
 
-        // 1. Заполняем инфо
         ItemData resultItem = Resources.Load<ItemData>("Items/" + recipe.outputResourceName);
         if (resultItem == null) resultItem = Resources.Load<ItemData>(recipe.outputResourceName);
 
@@ -83,16 +79,13 @@ public class CraftingDetailsUI : MonoBehaviour
             if (resultNameText != null) resultNameText.text = recipe.recipeName;
         }
 
-        // 2. ВАЖНАЯ ПРОВЕРКА: Можно ли вообще это скрафтить?
         bool isCraftable = !recipe.isBaseResource && recipe.requiredIngredients.Count > 0;
 
         if (createButton != null)
         {
-            // Прячем кнопку совсем, если это нельзя скрафтить
             createButton.gameObject.SetActive(isCraftable);
         }
 
-        // 3. Генерируем список
         RefreshIngredientsList();
     }
 
@@ -100,32 +93,27 @@ public class CraftingDetailsUI : MonoBehaviour
     {
         if (ingredientsContainer == null || ingredientPrefab == null || currentRecipe == null) return;
 
-        // === ПРАВИЛЬНАЯ ОЧИСТКА СПИСКА (Идем с конца) ===
         for (int i = ingredientsContainer.childCount - 1; i >= 0; i--)
         {
             Transform child = ingredientsContainer.GetChild(i);
             child.SetParent(null); 
             Destroy(child.gameObject);
         }
-        spawnedIngredients.Clear(); // Очищаем список ссылок
+        spawnedIngredients.Clear(); 
 
         bool allIngredientsAvailable = true;
 
-        // Создаем строчки
         foreach (var ingredient in currentRecipe.requiredIngredients)
         {
             GameObject obj = Instantiate(ingredientPrefab, ingredientsContainer);
             
-            // СБРОС МАСШТАБА (важно для UI)
             obj.transform.localScale = Vector3.one;
             
-            // --- ФИКС БАГА: ОТКЛЮЧАЕМ ИНТЕРАКТИВНОСТЬ СЛОТА ---
             var draggable = obj.GetComponent<UIDraggableItem>();
             if (draggable != null) draggable.enabled = false;
 
             var button = obj.GetComponent<Button>();
             if (button != null) button.enabled = false;
-            // ----------------------------------------------------
             
             var ingUI = obj.GetComponent<CraftingIngredientUI>();
             if (ingUI != null)
@@ -133,16 +121,14 @@ public class CraftingDetailsUI : MonoBehaviour
                 int currentAmount = InventoryManager.Instance.GetTotalAmountByName(ingredient.resourceName);
                 ingUI.Setup(ingredient.resourceName, currentAmount, ingredient.amount);
                 
-                spawnedIngredients.Add(ingUI); // Добавляем в список для Update
+                spawnedIngredients.Add(ingUI); 
 
                 if (currentAmount < ingredient.amount) allIngredientsAvailable = false;
             }
         }
 
-        // 4. Обновляем состояние кнопки
         UpdateCreateButtonState(allIngredientsAvailable);
 
-        // === ВЫЗЫВАЕМ УЛЬТИМАТИВНЫЙ ФИКС ===
         RectTransform contentRect = ingredientsContainer.GetComponent<RectTransform>();
         if (contentRect != null)
         {
@@ -150,17 +136,12 @@ public class CraftingDetailsUI : MonoBehaviour
         }
     }
 
-    // === ДОБАВЛЯЕМ НОВЫЙ МЕТОД-КОРУТИНУ ===
     private System.Collections.IEnumerator ResetScrollRoutine(RectTransform contentRect)
     {
-        // 1. Ждем, пока Unity прожует все Layout Groups, маски и нарисует кадр
         yield return new WaitForEndOfFrame();
-
-        // 2. Принудительно обновляем все холсты
         Canvas.ForceUpdateCanvases();
         UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
 
-        // 3. И вот теперь, когда Unity успокоилась, жестко прибиваем скролл к верху!
         UnityEngine.UI.ScrollRect scroll = contentRect.GetComponentInParent<UnityEngine.UI.ScrollRect>();
         if (scroll != null) 
         {
@@ -176,10 +157,7 @@ public class CraftingDetailsUI : MonoBehaviour
         {
             if (ingUI == null) continue;
 
-            // Запрашиваем свежее количество из инвентаря
             int currentAmount = InventoryManager.Instance.GetTotalAmountByName(ingUI.ResourceName);
-            
-            // Обновляем текст и цвет
             ingUI.UpdateCurrentAmount(currentAmount);
 
             if (currentAmount < ingUI.RequiredAmount)
@@ -188,21 +166,29 @@ public class CraftingDetailsUI : MonoBehaviour
             }
         }
 
-        // Обновляем саму кнопку
         UpdateCreateButtonState(allIngredientsAvailable);
     }
 
+    // === ИЗМЕНЕННЫЙ МЕТОД: УМНАЯ ПРОВЕРКА КНОПКИ ===
     private void UpdateCreateButtonState(bool isAvailable)
     {
         if (createButton != null && createButton.gameObject.activeSelf)
         {
-            createButton.interactable = isAvailable;
+            // Спрашиваем Очередь: "Есть ли у тебя свободные места?"
+            bool hasQueueSpace = true;
+            if (WorldCraftingQueue.Instance != null)
+            {
+                hasQueueSpace = WorldCraftingQueue.Instance.craftingQueue.Count < WorldCraftingQueue.Instance.maxQueueSize;
+            }
+
+            // Кнопка активна ТОЛЬКО если есть и ресурсы, и место в очереди
+            bool finalInteractable = isAvailable && hasQueueSpace;
+            createButton.interactable = finalInteractable;
             
-            // Меняем прозрачность текста кнопки для красоты
             var btnText = createButton.GetComponentInChildren<TextMeshProUGUI>();
             if (btnText != null)
             {
-                btnText.alpha = isAvailable ? 1f : 0.5f;
+                btnText.alpha = finalInteractable ? 1f : 0.5f;
             }
         }
     }
@@ -211,28 +197,31 @@ public class CraftingDetailsUI : MonoBehaviour
     {
         if (currentRecipe == null) return;
 
-        // Финальная проверка перед списанием
+        // === ЖЕСТКАЯ ПРОВЕРКА (АНТИ-СПИДРАН) ===
+        // Если очередь полна - отрубаем функцию ДО того, как спишутся ресурсы!
+        if (WorldCraftingQueue.Instance != null && WorldCraftingQueue.Instance.craftingQueue.Count >= WorldCraftingQueue.Instance.maxQueueSize)
+        {
+            Debug.LogWarning("Очередь крафта переполнена! Ресурсы сохранены.");
+            return;
+        }
+
         if (InventoryManager.Instance.HasResources(currentRecipe.requiredIngredients))
         {
-            // 1. Забираем ресурсы
             InventoryManager.Instance.ConsumeResources(currentRecipe.requiredIngredients);
 
-            // 2. Добавляем в очередь
             if (WorldCraftingQueue.Instance != null)
             {
                 WorldCraftingQueue.Instance.AddToQueue(currentRecipe);
             }
             else
             {
-                // Fallback
                 ItemData resultItem = Resources.Load<ItemData>("Items/" + currentRecipe.outputResourceName);
                 InventoryManager.Instance.AddItem(resultItem, currentRecipe.outputAmount);
             }
 
-            // 3. НЕ ЗАКРЫВАЕМ ОКНО, А ОБНОВЛЯЕМ ЦИФРЫ
+            // Мгновенно обновляем интерфейс, чтобы кнопка сразу погасла, если это был последний слот очереди
             RefreshIngredientsList();
 
-            // === 4. АВТОМАТИЧЕСКИЙ КЛИК ПО КНОПКЕ "ОЧИСТИТЬ" ===
             if (clearSlotsButton != null)
             {
                 clearSlotsButton.onClick.Invoke();
@@ -248,6 +237,6 @@ public class CraftingDetailsUI : MonoBehaviour
     {
         if (detailsWindow != null) detailsWindow.SetActive(false);
         currentRecipe = null;
-        spawnedIngredients.Clear(); // Чистим список при закрытии
+        spawnedIngredients.Clear(); 
     }
 }

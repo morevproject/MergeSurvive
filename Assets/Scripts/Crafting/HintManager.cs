@@ -29,6 +29,7 @@ public class HintManager : MonoBehaviour
     public Button closeShopBtn;
 
     private bool isAnimating = false;
+    private List<GameObject> activeFlyingIcons = new List<GameObject>();
 
     void Awake()
     {
@@ -47,7 +48,38 @@ public class HintManager : MonoBehaviour
     void Start() { UpdateUI(); }
 
     void OnEnable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated += UpdateUI; }
-    void OnDisable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; }
+    
+    // === БЕЗОПАСНЫЙ ОТКАТ (БЕЗ МАХИНАЦИЙ С ВАЛЮТОЙ) ===
+    void OnDisable() 
+    { 
+        if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated -= UpdateUI; 
+
+        if (isAnimating)
+        {
+            // Мы больше не возвращаем лампочку здесь, потому что мы её ЕЩЕ НЕ ТРАТИЛИ!
+
+            foreach (var icon in activeFlyingIcons)
+            {
+                if (icon != null) Destroy(icon);
+            }
+            activeFlyingIcons.Clear();
+
+            List<CraftingSlotUI> allSlots = GetCraftingSlots();
+            foreach (var slot in allSlots) 
+            {
+                if (slot != null) slot.ClearSlot(); 
+            }
+
+            isAnimating = false;
+            if (hintButton != null) hintButton.interactable = true;
+            if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
+
+            // Нам даже не нужно вызывать SaveProgress() при прерывании, 
+            // так как мы ничего не меняли в инвентаре или статах!
+            Debug.LogWarning("Верстак закрыт во время подсказки! Анимация прервана, лампочка сохранена.");
+        }
+    }
+
     void Update() { UpdateUI(); }
 
     private List<CraftingSlotUI> GetCraftingSlots()
@@ -72,10 +104,7 @@ public class HintManager : MonoBehaviour
 
     public void OnHintClicked()
     {
-        // === ФИКС 1: Жесткий блок МОМЕНТАЛЬНО при клике ===
         if (isAnimating) return; 
-        
-        // Не даем юзать лампочку, если рецепт УЖЕ в процессе открытия
         if (CraftingUIManager.Instance != null && CraftingUIManager.Instance.IsCrafting) return; 
 
         isAnimating = true; 
@@ -101,7 +130,7 @@ public class HintManager : MonoBehaviour
         else 
         {
             Debug.Log("Нет доступных комбинаций!");
-            isAnimating = false; // Снимаем блок
+            isAnimating = false; 
             if (hintButton != null) hintButton.interactable = true;
         }
     }
@@ -141,8 +170,7 @@ public class HintManager : MonoBehaviour
     {
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = false;
 
-        if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
-        SaveProgress();
+        // УБРАЛИ СПИСАНИЕ ЛАМПОЧКИ ОТСЮДА!
 
         ClearCraftingSlots();
         yield return new WaitForSeconds(0.1f);
@@ -187,7 +215,7 @@ public class HintManager : MonoBehaviour
                         if (finalData == null) finalData = Resources.Load<ItemData>("Items/" + ing.resourceName);
                         if (finalData == null) finalData = InventoryManager.Instance.GetItemDataByName(ing.resourceName);
 
-                        if (finalData != null) targetSlot.SetItem(finalData); // Это запустит 2.5 сек анимацию Верстака!
+                        if (finalData != null) targetSlot.SetItem(finalData); 
                     }
                 }
             }
@@ -195,8 +223,6 @@ public class HintManager : MonoBehaviour
 
         yield return new WaitForSeconds(0.2f);
         
-        // === ФИКС 2: Идеальная синхронизация ===
-        // Лампочка ждет, пока Верстак полностью не завершит свою торжественную анимацию!
         if (CraftingUIManager.Instance != null)
         {
             while (CraftingUIManager.Instance.IsCrafting)
@@ -205,8 +231,17 @@ public class HintManager : MonoBehaviour
             }
         }
 
+        // === ИДЕАЛЬНЫЙ ФИНАЛ: ОПЛАТА ПРИ ПОЛУЧЕНИИ ===
+        
+        // 1. Открываем рецепт
         CraftingManager.Instance.DiscoverRecipe(recipe); 
+        
+        // 2. Списываем лампочку ТОЛЬКО СЕЙЧАС
+        if (PlayerStats.Instance != null) PlayerStats.Instance.SpendBulbs(1);
+        
+        // 3. Сохраняем весь прогресс разом (И рецепт, и списание)
         SaveProgress();
+        // ==============================================
 
         foreach (var slot in allSlots) 
         {
@@ -216,7 +251,6 @@ public class HintManager : MonoBehaviour
         if (craftingCanvasGroup != null) craftingCanvasGroup.interactable = true;
         if (hintButton != null) hintButton.interactable = true;
         
-        // === Снимаем блок только в самом-самом конце! ===
         isAnimating = false;
     }
 
@@ -242,6 +276,8 @@ public class HintManager : MonoBehaviour
         if (flyingIconPrefab == null || animationParent == null) yield break;
 
         GameObject iconObj = Instantiate(flyingIconPrefab, animationParent);
+        activeFlyingIcons.Add(iconObj);
+
         iconObj.transform.localScale = Vector3.one; 
         iconObj.transform.position = startWorldPos; 
         
@@ -265,7 +301,12 @@ public class HintManager : MonoBehaviour
             if (iconObj != null) iconObj.transform.position = Vector3.Lerp(realStartPos, endPos, t);
             yield return null;
         }
-        if (iconObj != null) Destroy(iconObj);
+        
+        if (iconObj != null) 
+        {
+            activeFlyingIcons.Remove(iconObj);
+            Destroy(iconObj);
+        }
     }
 
     private void ClearCraftingSlots()
@@ -285,7 +326,7 @@ public class HintManager : MonoBehaviour
 
     private void OpenShop() { 
         if (shopPanel != null) shopPanel.SetActive(true); 
-        isAnimating = false; // Чтобы не заблокировать кнопку навсегда, если нет лампочек
+        isAnimating = false; 
     }
     
     public void CloseShop() 

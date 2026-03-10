@@ -3,6 +3,9 @@ using UnityEngine.UI;
 
 public class PlayerCombatController : MonoBehaviour
 {
+    // === ÄÎÁÀÂÈËÈ ÈÍÑÒÀÍÑ ÄËß ÑÂßÇÈ ÑÎ ÑÁÎÐÎÌ ===
+    public static PlayerCombatController Instance;
+
     [Header("UI")]
     public GameObject attackButtonObject; 
 
@@ -23,6 +26,14 @@ public class PlayerCombatController : MonoBehaviour
 
     private bool isAttackRequested = false;
     private Transform currentTarget; 
+
+    // === ÏÓÁËÈ×ÍÛÉ ÑÒÀÒÓÑ (Áüåò ëè èãðîê ïðÿìî ñåé÷àñ?) ===
+    public bool IsAttacking => isAttackRequested || Time.time < nextAttackTime;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     void Start()
     {
@@ -45,6 +56,14 @@ public class PlayerCombatController : MonoBehaviour
     void FindNearestEnemy()
     {
         if (UIManager.Instance != null && UIManager.Instance.IsMenuOpen)
+        {
+            currentTarget = null;
+            if (attackButtonObject != null) attackButtonObject.SetActive(false);
+            return;
+        }
+
+        // === ÆÅÑÒÊÈÉ ÁËÎÊ: ÅÑËÈ ÈÄÅÒ ÑÁÎÐ, ÏÐß×ÅÌ ÊÍÎÏÊÓ ÀÒÀÊÈ ===
+        if (InteractionUIManager.Instance != null && InteractionUIManager.Instance.isGathering)
         {
             currentTarget = null;
             if (attackButtonObject != null) attackButtonObject.SetActive(false);
@@ -74,8 +93,6 @@ public class PlayerCombatController : MonoBehaviour
         {
             currentTarget = nearestEnemy;
             
-            // === ÔÈÊÑ ÎÒÎÁÐÀÆÅÍÈß ÊÍÎÏÊÈ ===
-            // Ïîêàçûâàåì êíîïêó ÒÎËÜÊÎ åñëè âðàã ðÿäîì È ìû íå â êóëäàóíå
             if (attackButtonObject != null) 
             {
                 bool isCooldownFinished = Time.time >= nextAttackTime;
@@ -110,9 +127,11 @@ public class PlayerCombatController : MonoBehaviour
         if (currentTarget == null) return;
         if (Time.time < nextAttackTime) return;
 
+        // Áëîê, åñëè êàêèì-òî ÷óäîì ïðîæàëè àòàêó âî âðåìÿ ñáîðà
+        if (InteractionUIManager.Instance != null && InteractionUIManager.Instance.isGathering) return;
+
         isAttackRequested = true;
         
-        // === ÌÃÍÎÂÅÍÍÎ ÏÐß×ÅÌ ÊÍÎÏÊÓ ===
         if (attackButtonObject != null) attackButtonObject.SetActive(false);
         
         FaceTarget(); 
@@ -141,11 +160,7 @@ public class PlayerCombatController : MonoBehaviour
     public void ExecuteAttackLogic()
     {
         if (!this.enabled) return;
-
-        if (!isAttackRequested) 
-        {
-            return;
-        }
+        if (!isAttackRequested) return;
 
         isAttackRequested = false;
 
@@ -172,7 +187,6 @@ public class PlayerCombatController : MonoBehaviour
             {
                 GameObject arrowObj = Instantiate(arrowPrefab, firePoint.position, Quaternion.identity);
                 Projectile projectile = arrowObj.GetComponent<Projectile>();
-                
                 projectile.Setup(damage, currentTarget);
             }
         }
