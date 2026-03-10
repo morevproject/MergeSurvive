@@ -23,22 +23,17 @@ public class InteractionUIManager : MonoBehaviour
         HideInteraction(); 
     }
 
-    // === УМНОЕ ОБНОВЛЕНИЕ КНОПКИ ===
     private void Update()
     {
         if (interactButton == null) return;
 
-        // Если у нас есть цель для сбора (мы стоим рядом с ресурсом)
         if (currentInteractable != null)
         {
-            // Проверяем все блокирующие факторы
             bool isMenuOpen = UIManager.Instance != null && (UIManager.Instance.IsMenuOpen || UIManager.Instance.IsBossMode);
             bool isAttacking = PlayerCombatController.Instance != null && PlayerCombatController.Instance.IsAttacking;
 
-            // Кнопка должна быть видна ТОЛЬКО если мы не в меню, не собираем и не атакуем
             bool shouldBeVisible = !isMenuOpen && !isGathering && !isAttacking;
 
-            // Включаем или выключаем кнопку только если её текущее состояние не совпадает с нужным
             if (interactButton.activeSelf != shouldBeVisible)
             {
                 interactButton.SetActive(shouldBeVisible);
@@ -46,7 +41,6 @@ public class InteractionUIManager : MonoBehaviour
         }
         else
         {
-            // Если цели нет, железобетонно прячем кнопку
             if (interactButton.activeSelf)
             {
                 interactButton.SetActive(false);
@@ -56,15 +50,12 @@ public class InteractionUIManager : MonoBehaviour
 
     public void ShowInteraction(WorldInteractable interactable)
     {
-        // Просто запоминаем цель. Метод Update сам включит кнопку, когда будет безопасно!
         currentInteractable = interactable;
     }
 
     public void HideInteraction()
     {
         if (isGathering) return; 
-        
-        // Забываем цель. Update сам спрячет кнопку.
         currentInteractable = null; 
     }
 
@@ -83,8 +74,6 @@ public class InteractionUIManager : MonoBehaviour
         if (isGathering) yield break; 
         
         isGathering = true; 
-        
-        // Кнопка спрячется сама через Update, так как isGathering стало true
 
         if (InteractionHandler.Instance != null)
         {
@@ -117,13 +106,20 @@ public class InteractionUIManager : MonoBehaviour
         {
             yield return new WaitForSeconds(finishDelay);
         }
-
-        isGathering = false; // Как только закончили, Update снова покажет кнопку!
         
         if (InteractionHandler.Instance != null)
         {
             InteractionHandler.Instance.ForceRefresh();
         }
+
+        // === ПРЕДОХРАНИТЕЛЬ ОТ "СОСТОЯНИЯ ГОНКИ" ===
+        // Ждем 0.2 секунды, чтобы дать Аниматору и скриптам передвижения 
+        // 100% времени на полное возвращение управления игроку ДО того, 
+        // как мы снимем флаг isGathering и покажем кнопку атаки.
+        yield return new WaitForSeconds(1.9f);
+        // ============================================
+
+        isGathering = false; 
     }
 
     private void PlayGatheringEffects()
