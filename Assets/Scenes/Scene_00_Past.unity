@@ -1210,6 +1210,10 @@ MonoBehaviour:
   inventoryButton: {fileID: 1754383498}
   CraftingPanel: {fileID: 2052562533}
   craftingButton: {fileID: 1952475857}
+  inventoryClosedSprite: {fileID: 21300000, guid: 225829ad059280c499d54bc647d016a8, type: 3}
+  inventoryOpenSprite: {fileID: 21300000, guid: 8ac17ff76d336544a85544f7b165d3c6, type: 3}
+  craftingClosedSprite: {fileID: 21300000, guid: 3cd083ad1da329e45ac66c3ba01fdd30, type: 3}
+  craftingOpenSprite: {fileID: 21300000, guid: d758aed11bea8d24bb1a2765d8bd5ce7, type: 3}
   attackButtonObject: {fileID: 159668378}
   gatherButtonObject: {fileID: 325711861}
   avatarUI: {fileID: 7826721909151880631}
