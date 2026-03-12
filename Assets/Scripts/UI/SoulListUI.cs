@@ -12,11 +12,15 @@ public class SoulListUI : MonoBehaviour
     public Text currentGearsText;    
     public GameObject maxLevelText;  
 
+    [Header("Tabs UI (Color Coded)")]
+    public Image[] tabButtons; 
+    public Sprite[] activeTabSprites;   // Массив ярких картинок (по порядку)
+    public Sprite[] inactiveTabSprites; // Массив тусклых картинок (по порядку)
+
     [Header("List Settings")]
     public Transform contentContainer; 
     public GameObject soulItemPrefab;  
 
-    // Текущая вкладка (0..6)
     private int currentTabIndex = 0; 
 
     private void Awake()
@@ -45,15 +49,29 @@ public class SoulListUI : MonoBehaviour
         if (upgradeButton != null)
             upgradeButton.onClick.AddListener(OnUpgradeClicked);
 
+        UpdateTabVisuals(); 
         RefreshUI();
     }
     
-    // МЕТОД ДЛЯ КНОПОК
     public void SetTab(int tabIndex)
     {
         currentTabIndex = tabIndex;
-        // Debug.Log($"[UI] Вкладка: {tabIndex}");
+        UpdateTabVisuals(); 
         RefreshSoulList();
+    }
+
+    // === ОБНОВЛЕННЫЙ МЕТОД С МАССИВАМИ ===
+    private void UpdateTabVisuals()
+    {
+        if (tabButtons == null || activeTabSprites == null || inactiveTabSprites == null) return;
+
+        for (int i = 0; i < tabButtons.Length; i++)
+        {
+            if (tabButtons[i] != null && i < activeTabSprites.Length && i < inactiveTabSprites.Length)
+            {
+                tabButtons[i].sprite = (i == currentTabIndex) ? activeTabSprites[i] : inactiveTabSprites[i];
+            }
+        }
     }
 
     public void RefreshUI()
@@ -100,7 +118,6 @@ public class SoulListUI : MonoBehaviour
     {
         if (contentContainer == null || soulItemPrefab == null) return;
 
-        // Чистим список
         foreach (Transform child in contentContainer) Destroy(child.gameObject);
 
         if (CraftingManager.Instance == null) return;
@@ -112,35 +129,17 @@ public class SoulListUI : MonoBehaviour
         {
             bool showRecipe = false;
 
-            // --- ЛОГИКА 7 ВКЛАДОК ---
             switch (currentTabIndex)
             {
-                case 0: // Всё
-                    showRecipe = true;
-                    break;
-                case 1: // Ресурсы
-                    showRecipe = (recipe.category == ItemCategory.Resource);
-                    break;
-                case 2: // Инструменты
-                    showRecipe = (recipe.category == ItemCategory.Tool);
-                    break;
-                case 3: // Оружие
-                    showRecipe = (recipe.category == ItemCategory.Weapon);
-                    break;
-                case 4: // Броня
-                    showRecipe = (recipe.category == ItemCategory.Armor);
-                    break;
-                case 5: // Еда (Food)
-                    showRecipe = (recipe.category == ItemCategory.Food);
-                    break;
-                case 6: // Боеприпасы (Ammo)
-                    showRecipe = (recipe.category == ItemCategory.Ammo);
-                    break;
-                case 7: // Станции (Stations)
-                    showRecipe = (recipe.category == ItemCategory.Stations);
-                    break;
+                case 0: showRecipe = true; break;
+                case 1: showRecipe = (recipe.category == ItemCategory.Resource); break;
+                case 2: showRecipe = (recipe.category == ItemCategory.Tool); break;
+                case 3: showRecipe = (recipe.category == ItemCategory.Weapon); break;
+                case 4: showRecipe = (recipe.category == ItemCategory.Armor); break;
+                case 5: showRecipe = (recipe.category == ItemCategory.Food); break;
+                case 6: showRecipe = (recipe.category == ItemCategory.Ammo); break;
+                case 7: showRecipe = (recipe.category == ItemCategory.Stations); break;
             }
-            // ------------------------
 
             if (showRecipe)
             {
