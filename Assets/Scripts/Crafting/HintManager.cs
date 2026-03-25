@@ -28,9 +28,15 @@ public class HintManager : MonoBehaviour
     public Button buy10Btn;
     public Button closeShopBtn;
 
+    [Header("Shop Costs (в Алмазах)")]
+    public int cost1Bulb = 10;
+    public int cost10Bulbs = 90;
+    public int cost100Bulbs = 800;
+
     private bool isAnimating = false;
     private List<GameObject> activeFlyingIcons = new List<GameObject>();
 
+    // ... (Awake оставляем, но меняем привязку кнопок) ...
     void Awake()
     {
         Instance = this;
@@ -38,9 +44,11 @@ public class HintManager : MonoBehaviour
         if (hintButton != null) hintButton.onClick.AddListener(OnHintClicked);
         if (closeShopBtn != null) closeShopBtn.onClick.AddListener(CloseShop);
         
-        if (buy1Btn != null) buy1Btn.onClick.AddListener(() => BuyPack(1));
-        if (buy5Btn != null) buy5Btn.onClick.AddListener(() => BuyPack(10));
-        if (buy10Btn != null) buy10Btn.onClick.AddListener(() => BuyPack(100));
+        // Передаем и количество лампочек, и их цену
+        if (buy1Btn != null) buy1Btn.onClick.AddListener(() => BuyPackWithGems(1, cost1Bulb));
+        // У тебя в скрипте buy5Btn выдавал 10 лампочек, оставил как было, но имей в виду название :)
+        if (buy5Btn != null) buy5Btn.onClick.AddListener(() => BuyPackWithGems(10, cost10Bulbs)); 
+        if (buy10Btn != null) buy10Btn.onClick.AddListener(() => BuyPackWithGems(100, cost100Bulbs));
 
         if (shopPanel != null) shopPanel.SetActive(false);
     }
@@ -336,11 +344,23 @@ public class HintManager : MonoBehaviour
         if (hintButton != null) hintButton.interactable = true;
     }
 
-    private void BuyPack(int amount)
+    private void BuyPackWithGems(int bulbAmount, int gemCost)
     {
-        if (PlayerStats.Instance != null) PlayerStats.Instance.AddBulbs(amount);
-        SaveProgress();
-        CloseShop();
+        // Проверяем, есть ли у игрока алмазы, и сразу списываем их
+        if (CurrencyManager.Instance.SpendGems(gemCost))
+        {
+            // Алмазы списались успешно! Выдаем лампочки
+            if (PlayerStats.Instance != null) PlayerStats.Instance.AddBulbs(bulbAmount);
+            SaveProgress();
+            CloseShop();
+            Debug.Log($"<color=green>Куплено {bulbAmount} подсказок за {gemCost} алмазов!</color>");
+        }
+        else
+        {
+            // Денег нет
+            Debug.LogWarning("<color=red>Недостаточно алмазов для покупки подсказок!</color>");
+            // Тут в будущем можно добавить анимацию "тряски" ценника или попап "Мало алмазов"
+        }
     }
 
     private void SaveProgress() { if (SaveManager.Instance != null) SaveManager.Instance.SaveGame(); }
