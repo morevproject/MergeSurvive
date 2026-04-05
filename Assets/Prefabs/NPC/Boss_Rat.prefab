@@ -5138,6 +5138,7 @@ MonoBehaviour:
   minDamage: 10
   maxDamage: 12
   attackRange: 2
+  baseArmor: 0
   currentHealth: 100
   isDead: 0
 --- !u!114 &9050249294056260480
@@ -5177,6 +5178,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5049777234039081705, guid: 77b145766e360ba4aa528cccf4d07972, type: 3}
       propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5049777234039081705, guid: 77b145766e360ba4aa528cccf4d07972, type: 3}
+      propertyPath: m_SizeDelta.x
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5113732686996217641, guid: 77b145766e360ba4aa528cccf4d07972, type: 3}
@@ -5269,6 +5274,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5113732686996217641, guid: 77b145766e360ba4aa528cccf4d07972, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7318141849041663317, guid: 77b145766e360ba4aa528cccf4d07972, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7318141849041663317, guid: 77b145766e360ba4aa528cccf4d07972, type: 3}
+      propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

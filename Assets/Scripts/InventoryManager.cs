@@ -29,9 +29,13 @@ public class InventoryManager : MonoBehaviour
     public GameObject inventoryItemPrefab;
     public GameObject inventoryUI; 
 
+    [Header("Tabs UI (Color Coded)")]
+    public Image[] tabButtons; 
+    public Sprite[] activeTabSprites;   // Массив ярких картинок (по порядку)
+    public Sprite[] inactiveTabSprites; // Массив тусклых картинок (по порядку)
+
     [Header("Data")]
     public List<InventorySlot> inventorySlots = new List<InventorySlot>();
-    // public int maxSlots = 20; // <--- УДАЛИЛИ ОГРАНИЧЕНИЕ
 
     public delegate void OnInventoryChange();
     public event OnInventoryChange onInventoryChange;
@@ -48,6 +52,7 @@ public class InventoryManager : MonoBehaviour
     private void Start()
     {
         UpdateInventoryUI();
+        UpdateTabVisuals(); 
     }
 
     private void OnDisable()
@@ -55,20 +60,14 @@ public class InventoryManager : MonoBehaviour
         ResetFilter();
     }
 
-    // =========================================================
-    // ОСНОВНЫЕ МЕТОДЫ (Add/Remove)
-    // =========================================================
-
     public void AddItem(ItemData item, int quantity = 1)
     {
         if (item == null) return;
 
         InventorySlot existingSlot = null;
         
-        // Пытаемся найти слот для стака
         if (item.IsStackable)
         {
-            // Ищем слот, где есть этот предмет и место еще есть (< maxStack)
             existingSlot = inventorySlots.Find(x => x.itemData.ItemName == item.ItemName && x.stackSize < item.MaxStackSize);
         }
 
@@ -78,27 +77,21 @@ public class InventoryManager : MonoBehaviour
         }
         else
         {
-            // --- ФИКС: УБРАЛИ ПРОВЕРКУ НА maxSlots ---
-            // Просто добавляем новый слот. ScrollView сам растянется.
             inventorySlots.Add(new InventorySlot(item, quantity));
-            // -----------------------------------------
         }
 
-        // Проверяем анлоки рецептов
         if (CraftingManager.Instance != null) CraftingManager.Instance.CheckUnlocks(item);
 
         UpdateInventoryUI();
 
-        // Универсальные триггеры туториала (проверяем всё при любом пополнении инвентаря)
         if (TutorialManager.Instance != null)
         {
-            TutorialManager.Instance.CheckGathering(); // Проверит палки и камни
+            TutorialManager.Instance.CheckGathering(); 
         }
     }
 
     public void RemoveItem(ItemData item, int quantity = 1)
     {
-        // Ищем слот по имени, так надежнее
         InventorySlot slot = inventorySlots.Find(x => x.itemData.ItemName == item.ItemName);
         if (slot != null)
         {
@@ -108,27 +101,37 @@ public class InventoryManager : MonoBehaviour
         UpdateInventoryUI();
     }
 
-    // Метод для добавления по имени (для читов/дропа)
     public void AddResource(string resourceName, int amount)
     {
         ItemData item = Resources.Load<ItemData>("Items/" + resourceName);
-        // Fallback: пробуем искать без папки Items/
         if (item == null) item = Resources.Load<ItemData>(resourceName);
 
         if (item != null) AddItem(item, amount);
         else Debug.LogError($"InventoryManager: Не найден предмет {resourceName} в Resources!");
     }
 
-    // =========================================================
-    // УПРАВЛЕНИЕ UI
-    // =========================================================
-
     public void SetCategory(int categoryIndex)
     {
         currentCategoryIndex = categoryIndex;
+        UpdateTabVisuals(); 
         ListItems();
     }
     
+    // === ОБНОВЛЕННЫЙ МЕТОД С МАССИВАМИ ===
+    private void UpdateTabVisuals()
+    {
+        if (tabButtons == null || activeTabSprites == null || inactiveTabSprites == null) return;
+
+        for (int i = 0; i < tabButtons.Length; i++)
+        {
+            if (tabButtons[i] != null && i < activeTabSprites.Length && i < inactiveTabSprites.Length)
+            {
+                // Берем картинку из массива под тем же номером 'i'
+                tabButtons[i].sprite = (i == currentCategoryIndex) ? activeTabSprites[i] : inactiveTabSprites[i];
+            }
+        }
+    }
+
     public void UpdateSearch(string query)
     {
         currentSearchQuery = query.ToLower();
@@ -147,14 +150,12 @@ public class InventoryManager : MonoBehaviour
 
         foreach (Transform child in itemContent) Destroy(child.gameObject);
 
-        // 1. РЕЖИМ "ПОКАЗАТЬ НЕДОСТАЮЩЕЕ" (Для крафта)
         if (craftRequirementsFilter != null)
         {
             foreach (var req in craftRequirementsFilter)
             {
                 int currentAmount = GetTotalAmountByName(req.resourceName);
                 
-                // Пытаемся найти ItemData, чтобы отобразить иконку
                 ItemData itemData = null;
                 var existingSlot = inventorySlots.Find(x => x.itemData.ItemName == req.resourceName);
                 if (existingSlot != null) itemData = existingSlot.itemData;
@@ -166,24 +167,19 @@ public class InventoryManager : MonoBehaviour
 
                 if (itemData != null)
                 {
-                    CreateVisualSlot(itemData, currentAmount, req.amount); // req.amount здесь работает как "Target"
+                    CreateVisualSlot(itemData, currentAmount, req.amount); 
                 }
             }
         }
-        // 2. ОБЫЧНЫЙ РЕЖИМ
         else
         {
             foreach (var slot in inventorySlots)
             {
-                // Фильтр по категории
                 if (currentCategoryIndex != 0)
                 {
-                    // (ItemType 0 = Resource, 1 = Tool...)
-                    // Проверяем соответствие типа. (currentCategoryIndex - 1) т.к. 0 это "ВСЕ"
                     if ((int)slot.itemData.itemType != (currentCategoryIndex - 1)) continue;
                 }
 
-                // Поиск
                 if (!string.IsNullOrEmpty(currentSearchQuery))
                 {
                     if (!slot.itemData.GetName().ToLower().Contains(currentSearchQuery)) continue;
@@ -199,23 +195,18 @@ public class InventoryManager : MonoBehaviour
         GameObject obj = Instantiate(inventoryItemPrefab, itemContent);
         obj.SetActive(true);
 
-        // Если requiredAmount > 0, значит мы в режиме "показать нехватку"
         bool isMissing = (requiredAmount > 0) && (currentAmount < requiredAmount);
 
         var slotUI = obj.GetComponent<ResourceSlotUI>();
         if (slotUI != null)
         {
             slotUI.UpdateSlot(item.GetName(), item.Icon, currentAmount, item);
-            if (isMissing) slotUI.SetHighlight(true); // Красная рамка
+            if (isMissing) slotUI.SetHighlight(true); 
         }
         
         var draggable = obj.GetComponent<UIDraggableItem>();
         if (draggable != null) draggable.SetSlotData(new InventorySlot(item, currentAmount));
     }
-
-    // =========================================================
-    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (Крафт, Сохранение)
-    // =========================================================
 
     public int GetTotalAmountByName(string resourceName)
     {
@@ -239,7 +230,6 @@ public class InventoryManager : MonoBehaviour
     public void RemoveResource(string resourceName, int amount)
     {
         int remaining = amount;
-        // Идем с конца, чтобы безопасно удалять слоты
         for (int i = inventorySlots.Count - 1; i >= 0; i--)
         {
             if (inventorySlots[i].itemData.ItemName == resourceName)
@@ -259,6 +249,8 @@ public class InventoryManager : MonoBehaviour
         craftRequirementsFilter = requirements;
         currentCategoryIndex = 0; 
         currentSearchQuery = "";
+        
+        UpdateTabVisuals(); 
 
         if (inventoryUI != null)
         {
@@ -283,6 +275,7 @@ public class InventoryManager : MonoBehaviour
         craftRequirementsFilter = null;
         currentCategoryIndex = 0;
         currentSearchQuery = "";
+        UpdateTabVisuals();
         ListItems();
     }
 
@@ -291,8 +284,6 @@ public class InventoryManager : MonoBehaviour
         inventorySlots.Clear();
         UpdateInventoryUI();
     }
-    
-    // --- ВОТ ЭТИ МЕТОДЫ Я ВЕРНУЛ ---
 
     public int GetItemCount(ItemData itemData)
     {
@@ -300,7 +291,6 @@ public class InventoryManager : MonoBehaviour
         return 0;
     }
 
-    // Получить количество предмета по ИМЕНИ (строке) - старый метод, который мог использоваться где-то еще
     public int GetItemCountByName(string itemName)
     {
         foreach (var slot in inventorySlots) 
@@ -311,7 +301,6 @@ public class InventoryManager : MonoBehaviour
         return 0;
     }
 
-    // Найти саму ItemData по имени (нужно для SaveManager и Debug Console)
     public ItemData GetItemDataByName(string itemName)
     {
         foreach (var slot in inventorySlots)

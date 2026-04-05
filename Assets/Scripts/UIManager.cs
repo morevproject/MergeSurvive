@@ -14,13 +14,21 @@ public class UIManager : MonoBehaviour
     public GameObject CraftingPanel; 
     public Button craftingButton;
     
+    // === НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ СПРАЙТОВ КНОПОК ===
+    [Header("Button Sprites")]
+    public Sprite inventoryClosedSprite;
+    public Sprite inventoryOpenSprite;
+    
+    public Sprite craftingClosedSprite;
+    public Sprite craftingOpenSprite;
+    // ===========================================
+
     [Header("Action Buttons (To Hide)")]
     public GameObject attackButtonObject; 
     public GameObject gatherButtonObject; 
 
-    // === НОВАЯ ПЕРЕМЕННАЯ ДЛЯ АВАТАРА ===
     [Header("Avatar Settings")]
-    public GameObject avatarUI; // Перетащи сюда свой LeftAvatar (или панель с ним) из Иерархии
+    public GameObject avatarUI; 
 
     public static event Action<bool> OnInventoryToggled; 
     public static event Action<bool> OnCraftingToggled;  
@@ -52,6 +60,9 @@ public class UIManager : MonoBehaviour
         
         SetMenuState(false);
         SetBossMode(false);
+        
+        // Принудительно обновляем картинки на старте
+        UpdateGameState();
     }
 
     void Update()
@@ -63,19 +74,15 @@ public class UIManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape)) CloseAllMenus();
     }
     
-    // --- УПРАВЛЕНИЕ РЕЖИМОМ БОССА ---
     public void SetBossMode(bool active)
     {
         IsBossMode = active;
 
-        // 1. Кнопки Меню
         if (inventoryButton != null) inventoryButton.gameObject.SetActive(!active);
         if (craftingButton != null) craftingButton.gameObject.SetActive(!active);
         
-        // 2. Закрываем окна
         if (active) CloseAllMenus();
         
-        // 3. Прячем кнопки действий
         if (active)
         {
             if (attackButtonObject != null) attackButtonObject.SetActive(false);
@@ -83,23 +90,17 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            // Бой окончен — ищем деревья заново
             if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();
         }
 
-        // --- 4. КИНЕМАТОГРАФИЧНОСТЬ ---
-        
-        // А) Скрываем/Показываем системный курсор
         Cursor.visible = !active;
         Cursor.lockState = active ? CursorLockMode.Locked : CursorLockMode.None;
 
-        // Б) Блокируем/Разблокируем слоты экипировки (чтобы нельзя было нажать)
         if (PlayerProfileUI.Instance != null)
         {
             PlayerProfileUI.Instance.SetInputLock(active);
         }
     }
-    // ----------------------------------------
 
     public void ToggleInventory(bool? state = null)
     {
@@ -113,7 +114,6 @@ public class UIManager : MonoBehaviour
             InventoryPanel.SetActive(isActive);
             OnInventoryToggled?.Invoke(isActive);
 
-            //   Триггер тутора
             if (isActive && TutorialManager.Instance != null) TutorialManager.Instance.TriggerUIOpened("Inventory");
 
             if (isActive && CraftingPanel != null) 
@@ -137,7 +137,6 @@ public class UIManager : MonoBehaviour
             CraftingPanel.SetActive(isActive);
             OnCraftingToggled?.Invoke(isActive);
 
-            //   Триггер тутора
             if (isActive && TutorialManager.Instance != null) TutorialManager.Instance.TriggerUIOpened("Crafting");
 
             if (isActive && InventoryPanel != null)
@@ -156,12 +155,30 @@ public class UIManager : MonoBehaviour
         
         SetMenuState(isInventoryOpen || isCraftingOpen);
 
-        // === ИЗЯЩНАЯ ПРОВЕРКА ДЛЯ АВАТАРА ===
         if (avatarUI != null)
         {
-            // Аватар включен всегда (!isCraftingOpen означает "пока Верстак НЕ открыт")
             avatarUI.SetActive(!isCraftingOpen);
         }
+
+        // === МАГИЯ СМЕНЫ КАРТИНОК ===
+        if (inventoryButton != null)
+        {
+            Image invImage = inventoryButton.GetComponent<Image>();
+            if (invImage != null)
+            {
+                invImage.sprite = isInventoryOpen ? inventoryOpenSprite : inventoryClosedSprite;
+            }
+        }
+
+        if (craftingButton != null)
+        {
+            Image craftImage = craftingButton.GetComponent<Image>();
+            if (craftImage != null)
+            {
+                craftImage.sprite = isCraftingOpen ? craftingOpenSprite : craftingClosedSprite;
+            }
+        }
+        // ============================
     }
     
     void SetMenuState(bool isOpen)
@@ -179,10 +196,8 @@ public class UIManager : MonoBehaviour
         {
             GameStateManager.Instance.SetState(GameStateManager.GameState.Playing);
             
-            // Меню закрыто — ищем деревья заново
             if (InteractionHandler.Instance != null) InteractionHandler.Instance.ForceRefresh();
 
-            //   Триггер тутора
             if (TutorialManager.Instance != null) TutorialManager.Instance.TriggerUIClosed();
         }
     }
