@@ -1775,17 +1775,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1583770400307290238, guid: 690d1a2df0afd384aaec201d0bbb8630, type: 3}
   m_PrefabInstance: {fileID: 735666791}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &736983133 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5609849648363677639, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
-  m_PrefabInstance: {fileID: 7826721909151880630}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &825875381 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5814271135610437107, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
@@ -3115,7 +3104,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactButton: {fileID: 325711861}
-  interactText: {fileID: 736983133}
+  interactText: {fileID: 0}
   handGatherDelay: 3.15
   toolGatherDelay: 0.5
   toolGatherFinishDelay: 0.6
@@ -3380,6 +3369,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 958259347780952595, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
       propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1347360479429479070, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+      propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2277242401921083337, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
