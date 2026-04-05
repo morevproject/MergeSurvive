@@ -3,14 +3,25 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Linq;
 
-// Убрали интерфейсы Drag, оставили только Click
 public class SoulItemUI : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI")]
-    public Image icon; 
     public Text soulNameText;
     public GameObject lockedOverlay; 
     
+    // === ТОТ САМЫЙ МОСТИК ДЛЯ UIDraggableItem ===
+    // Теперь скрипт перетаскивания не будет ругаться, он просто 
+    // возьмет картинку из ResourceSlotUI.
+    public Image icon 
+    { 
+        get 
+        { 
+            if (resourceSlotUI == null) resourceSlotUI = GetComponent<ResourceSlotUI>();
+            return resourceSlotUI != null ? resourceSlotUI.iconImage : null; 
+        } 
+    }
+    // ==============================================
+
     [Header("Data")]
     public ItemData itemData; 
     private Recipe myRecipe; 
@@ -18,15 +29,15 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
     private bool isLocked = false;
     private int requiredTier = 1;
 
-    public bool isTutorialLocked = false; // Невидимая блокировка для обучения
+    public bool isTutorialLocked = false; 
 
-    // Ссылка на скрипт перетаскивания (который уже есть у тебя)
     private UIDraggableItem dragComponent;
+    private ResourceSlotUI resourceSlotUI; 
 
     private void Awake()
     {
-        // Пытаемся найти компонент перетаскивания на этом же объекте
         dragComponent = GetComponent<UIDraggableItem>();
+        resourceSlotUI = GetComponent<ResourceSlotUI>(); 
     }
     
     public void Setup(Recipe recipe, bool locked)
@@ -34,16 +45,17 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
         myRecipe = recipe;
         requiredTier = recipe.requiredWorkbenchTier; 
         
-        // 1. Настройка UI
-        if (icon == null) icon = GetComponent<Image>();
-        if (icon != null && recipe.icon != null) icon.sprite = recipe.icon;
+        FindItemData(recipe);
+
+        if (resourceSlotUI == null) resourceSlotUI = GetComponent<ResourceSlotUI>();
+        
+        if (resourceSlotUI != null)
+        {
+            resourceSlotUI.UpdateSlot(recipe.recipeName, recipe.icon, 0, itemData);
+        }
         
         if (soulNameText != null) soulNameText.text = recipe.recipeName;
 
-        // 2. Поиск ItemData (для слота)
-        FindItemData(recipe);
-
-        // 3. Установка замка
         SetLocked(locked);
     }
 
@@ -51,11 +63,8 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
     {
         if (string.IsNullOrEmpty(recipe.outputResourceName)) return;
 
-        // Попытка А
         itemData = Resources.Load<ItemData>("Items/" + recipe.outputResourceName);
-        // Попытка Б
         if (itemData == null) itemData = Resources.Load<ItemData>(recipe.outputResourceName);
-        // Попытка В (LINQ)
         if (itemData == null)
         {
             var allItems = Resources.LoadAll<ItemData>(""); 
@@ -67,11 +76,13 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
     {
         isLocked = locked;
         
-        // Визуал замка
         if (lockedOverlay != null) lockedOverlay.SetActive(locked);
-        if (icon != null) icon.color = locked ? Color.gray : Color.white;
+        
+        if (resourceSlotUI != null && resourceSlotUI.iconImage != null)
+        {
+            resourceSlotUI.iconImage.color = locked ? Color.gray : Color.white;
+        }
 
-        // Если заперто — отключаем компонент перетаскивания!
         if (dragComponent != null)
         {
             dragComponent.enabled = !locked;
@@ -86,7 +97,6 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-        // --- НОВОЕ: Игнорируем клик, если туториал запрещает ---
         if (isTutorialLocked) return; 
 
         if (CraftingDetailsUI.Instance != null)
@@ -108,7 +118,6 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
     {
         isTutorialLocked = !isInteractive;
         
-        // Отключаем возможность перетаскивания, но ВИЗУАЛ (замок/цвет) не трогаем!
         if (dragComponent != null)
         {
             dragComponent.enabled = isInteractive && !isLocked;

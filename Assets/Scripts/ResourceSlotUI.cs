@@ -4,8 +4,13 @@ using UnityEngine.UI;
 public class ResourceSlotUI : MonoBehaviour
 {
     [Header("UI References")]
-    public Image iconImage;    
+    public Image bgImage;      // Сюда перетащим объект BG (подложка)
+    public Image iconImage;    // Сюда перетащим объект Icon (сам гриб/камень)
     public Text amountText;    
+
+    [Header("Backgrounds (По порядку ItemType)")]
+    public Sprite[] categoryBackgrounds; // Массив цветных подложек
+    public Sprite defaultBackground;     // Фон по умолчанию (если пусто)
 
     [Header("Data")]
     public string resourceName; 
@@ -19,42 +24,38 @@ public class ResourceSlotUI : MonoBehaviour
     {
         buttonComponent = GetComponent<Button>();
         
-        // АВТОМАТИЧЕСКИ ПОДПИСЫВАЕМСЯ НА КЛИК
         if (buttonComponent != null)
         {
-            buttonComponent.onClick.RemoveAllListeners(); // На случай дублей
+            buttonComponent.onClick.RemoveAllListeners(); 
             buttonComponent.onClick.AddListener(OnSlotClicked);
         }
     }
 
-    // --- ОБРАБОТКА КЛИКА ПО СЛОТУ ---
     public void OnSlotClicked()
     {
-        // Передаем данные в панель деталей
         if (itemData != null && InventoryItemDetails.Instance != null)
         {
             InventoryItemDetails.Instance.SelectItem(itemData);
         }
     }
-    // --------------------------------
 
     private void Update()
     {
-        // Логика пульсации (для туториалов или подсветки нехватки ресурсов)
-        if (shouldPulse && iconImage != null)
+        // Пульсация теперь работает на подложке (BG) - выглядит круче!
+        if (shouldPulse && bgImage != null)
         {
             float speed = 8.0f; 
             float minScale = 0.9f;
             float maxScale = 1.1f;
             
             Color normalColor = Color.white;
-            Color alertColor = new Color(1f, 0.3f, 0.3f); 
+            Color alertColor = new Color(1f, 0.3f, 0.3f); // Красноватый оттенок
 
             float time = Time.unscaledTime * speed;
             float factor = (Mathf.Sin(time) + 1.0f) / 2.0f; 
 
-            iconImage.transform.localScale = Vector3.one * Mathf.Lerp(minScale, maxScale, factor);
-            iconImage.color = Color.Lerp(normalColor, alertColor, factor);
+            bgImage.transform.localScale = Vector3.one * Mathf.Lerp(minScale, maxScale, factor);
+            bgImage.color = Color.Lerp(normalColor, alertColor, factor);
         }
     }
 
@@ -64,14 +65,7 @@ public class ResourceSlotUI : MonoBehaviour
         currentAmount = newAmount;
         itemData = newItemData;
 
-        // Если ссылки на UI слетели, пробуем найти их
-        if (iconImage == null)
-        {
-            Transform t = transform.Find("Icon");
-            if (t != null) iconImage = t.GetComponent<Image>();
-            if (iconImage == null) iconImage = GetComponent<Image>();
-        }
-
+        // --- 1. ОБНОВЛЯЕМ ИКОНКУ ---
         if (iconImage != null)
         {
             if (newIcon != null)
@@ -79,7 +73,6 @@ public class ResourceSlotUI : MonoBehaviour
                 iconImage.sprite = newIcon;
                 iconImage.enabled = true;
                 iconImage.color = Color.white; 
-                iconImage.transform.localScale = Vector3.one;
             }
             else
             {
@@ -87,9 +80,32 @@ public class ResourceSlotUI : MonoBehaviour
             }
         }
         
+        // --- 2. АВТОМАТИЧЕСКИ МЕНЯЕМ ПОДЛОЖКУ ---
+        if (bgImage != null)
+        {
+            if (itemData != null && categoryBackgrounds != null && categoryBackgrounds.Length > 0)
+            {
+                // Получаем индекс категории (0 = Resource, 1 = Tool и т.д.)
+                int typeIndex = (int)itemData.itemType;
+                
+                // Проверяем, не вышли ли мы за пределы массива
+                if (typeIndex >= 0 && typeIndex < categoryBackgrounds.Length && categoryBackgrounds[typeIndex] != null)
+                {
+                    bgImage.sprite = categoryBackgrounds[typeIndex];
+                }
+                else
+                {
+                    bgImage.sprite = defaultBackground;
+                }
+            }
+            else
+            {
+                bgImage.sprite = defaultBackground;
+            }
+        }
+        
         UpdateAmount(newAmount);
         
-        // Обновляем данные для Drag & Drop
         var draggable = GetComponent<UIDraggableItem>();
         if (draggable != null)
         {
@@ -114,24 +130,24 @@ public class ResourceSlotUI : MonoBehaviour
         
         if (buttonComponent != null)
         {
-            // Если пульсируем - отключаем стандартную реакцию кнопки, чтобы не мешала цвету
             if (isActive) buttonComponent.transition = Selectable.Transition.None;
             else buttonComponent.transition = Selectable.Transition.ColorTint;
         }
 
-        if (!isActive && iconImage != null)
+        if (!isActive && bgImage != null)
         {
-            iconImage.color = Color.white;
-            iconImage.transform.localScale = Vector3.one;
+            bgImage.color = Color.white;
+            bgImage.transform.localScale = Vector3.one;
         }
     }
 
     private void OnDisable()
     {
-        if (iconImage != null)
+        // Возвращаем масштаб и цвет на место, если окно внезапно закрыли
+        if (bgImage != null)
         {
-            iconImage.color = Color.white;
-            iconImage.transform.localScale = Vector3.one;
+            bgImage.color = Color.white;
+            bgImage.transform.localScale = Vector3.one;
         }
     }
 }
