@@ -88,6 +88,49 @@ public class HintManager : MonoBehaviour
         }
     }
 
+    // --- ИНТЕГРАЦИЯ ТУТОРИАЛА ---
+    // 1. Показываем лампочки
+    public void Tutorial_ShowBulbsUI()
+    {
+        // Показываем UI лампочек (но НЕ выдаем их через AddBulbs!)
+        if (hintCountText != null) hintCountText.transform.parent.gameObject.SetActive(true);
+        
+        // Временно прячем диалог Няни на 1.5 секунды, чтобы игрок рассмотрел новую кнопку
+        if (DialogueManager.Instance != null && DialogueManager.Instance.dialoguePanel != null)
+        {
+            DialogueManager.Instance.dialoguePanel.SetActive(false);
+            Invoke(nameof(RestoreDialogue), 1.5f);
+        }
+    }
+
+    // Метод для возврата диалога
+    private void RestoreDialogue()
+    {
+        if (DialogueManager.Instance != null && DialogueManager.Instance.dialoguePanel != null)
+        {
+            DialogueManager.Instance.dialoguePanel.SetActive(true);
+        }
+    }
+
+    // 2. Показываем плашку гемов (с нулем)
+    public void Tutorial_ShowGemsUI()
+    {
+        if (CurrencyManager.Instance != null)
+        {
+            // Убеждаемся, что панель гемов (ее родитель) включена
+            CurrencyManager.Instance.gemsText.transform.parent.gameObject.SetActive(true); 
+            CurrencyManager.Instance.gemsText.text = "0";
+        }
+    }
+
+    // 3. Выдаем кэш
+    public void Tutorial_GiveStarterGems()
+    {
+        if (CurrencyManager.Instance != null) CurrencyManager.Instance.AddGems(100);
+        PlayerPrefs.SetInt("PremiumUnlocked", 1);
+        PlayerPrefs.Save();
+    }
+
     void Update() { UpdateUI(); }
 
     private List<CraftingSlotUI> GetCraftingSlots()

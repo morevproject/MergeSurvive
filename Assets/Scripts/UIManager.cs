@@ -181,7 +181,7 @@ public class UIManager : MonoBehaviour
         // ============================
     }
     
-    void SetMenuState(bool isOpen)
+    public void SetMenuState(bool isOpen)
     {
         IsMenuOpen = isOpen;
 

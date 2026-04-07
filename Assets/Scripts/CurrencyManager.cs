@@ -53,7 +53,7 @@ public class CurrencyManager : MonoBehaviour
     private void LoadGems()
     {
         // Выдаем 100 гемов при самом первом запуске игры (стартовый капитал)
-        Gems = PlayerPrefs.GetInt(GEMS_SAVE_KEY, 100); 
+        Gems = PlayerPrefs.GetInt(GEMS_SAVE_KEY, 0); 
         UpdateUI();
     }
 

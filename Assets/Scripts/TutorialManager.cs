@@ -82,6 +82,8 @@ public class TutorialManager : MonoBehaviour
     public Image fadeOverlay; 
     public float fadeSpeed = 1.5f;
 
+    private float lockTimer = 0f;
+
     private void Awake()
     {
         Instance = this; 
@@ -163,6 +165,17 @@ public class TutorialManager : MonoBehaviour
                 AdvanceStep();
             }
         }
+
+        // --- ПЕРИОДИЧЕСКАЯ БЛОКИРОВКА РЕЦЕПТОВ ---
+        if (currentStep >= TutorialStep.CraftingOpenedDialogue && currentStep <= TutorialStep.WaitForArrowCraft)
+        {
+            lockTimer += Time.deltaTime;
+            if (lockTimer >= 0.5f) // Проверяем 2 раза в секунду
+            {
+                EnforceRecipeLocks();
+                lockTimer = 0f;
+            }
+        }
     }
 
     public void AdvanceStep()
@@ -171,6 +184,9 @@ public class TutorialManager : MonoBehaviour
         PlayerPrefs.SetInt("TutorialStep", (int)currentStep);
         PlayerPrefs.Save();
         ResumeCurrentStep(false); 
+
+        // Даем UI одну десятую секунды на перерисовку, а затем вешаем замки!
+        Invoke(nameof(EnforceRecipeLocks), 0.1f);
     }
 
     private void ResumeCurrentStep(bool isResuming = false)
@@ -303,6 +319,8 @@ public class TutorialManager : MonoBehaviour
                 StartCoroutine(FadeAndLoadScene());
                 break;
         }
+
+        Invoke(nameof(EnforceRecipeLocks), 0.1f);
     }
 
     public void OnRecipeClicked(string recipeOutputName)
@@ -384,14 +402,14 @@ public class TutorialManager : MonoBehaviour
     // --- ОБЩАЯ ЛОГИКА ТУТОРИАЛА ---
     private void PlayDialogue(List<DialogueNode> dialogue)
     {
-        void OnDialogueDone() 
-        { 
-            DialogueManager.Instance.OnDialogueFinished -= OnDialogueDone; 
-            AdvanceStep(); 
+        // Теперь мы просто передаем AdvanceStep как финальное действие (коллбэк)!
+        if (DialogueManager.Instance != null)
+        {
+            DialogueManager.Instance.StartDialogue(dialogue, () => 
+            {
+                AdvanceStep();
+            });
         }
-        
-        DialogueManager.Instance.OnDialogueFinished += OnDialogueDone;
-        DialogueManager.Instance.StartDialogue(dialogue);
     }
 
     private void PlayReminderDialogue(List<DialogueNode> dialogue) 
@@ -497,5 +515,18 @@ public class TutorialManager : MonoBehaviour
         PlayerPrefs.SetString("LastSavedScene", mainSceneName); 
         PlayerPrefs.Save();
         SceneManager.LoadScene(mainSceneName);
+    }
+
+    // Метод, который сам понимает, что должно быть заблокировано на текущем этапе
+    private void EnforceRecipeLocks()
+    {
+        if (currentStep >= TutorialStep.CraftingOpenedDialogue && currentStep <= TutorialStep.SelectRecipeDialogue)
+            LockAllRecipesExcept(""); // Жестко блочим всё (пустая строка)
+        else if (currentStep >= TutorialStep.WaitForRecipeClick && currentStep <= TutorialStep.FinalCraftDialogue)
+            LockAllRecipesExcept("Sharp_Stone"); // Разрешаем только Острый Камень
+        else if (currentStep == TutorialStep.WaitForArrowCraft)
+            LockAllRecipesExcept("Stone_Arrow"); // Разрешаем только Стрелу
+        else
+            LockAllRecipesExcept("ALL"); // Снимаем все блокировки
     }
 }

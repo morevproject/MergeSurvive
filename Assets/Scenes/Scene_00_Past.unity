@@ -1478,6 +1478,7 @@ MonoBehaviour:
   - {fileID: 7826721909151880636}
   - {fileID: 159668378}
   - {fileID: 825875381}
+  - {fileID: 678452160}
   fadeOverlay: {fileID: 284683427}
   fadeSpeed: 1.5
 --- !u!1001 &504076737
@@ -1631,6 +1632,11 @@ Transform:
 --- !u!224 &605084285 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1347360479429479070, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
+  m_PrefabInstance: {fileID: 7826721909151880630}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &678452160 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2661637900086107660, guid: 4417e306d008fbb4db1b836b1e7a4f33, type: 3}
   m_PrefabInstance: {fileID: 7826721909151880630}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &716946418 stripped

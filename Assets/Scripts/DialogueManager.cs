@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using UnityEngine.Events;
 
 [Serializable]
 public struct DialogueNode
@@ -12,6 +13,9 @@ public struct DialogueNode
     [TextArea(2, 5)] public string text;
     public Sprite avatarSprite;
     public bool isLeftAvatar; // true = игрок слева, false = NPC справа
+
+    [Tooltip("Событие, которое сработает В МОМЕНТ появления этой реплики на экране")]
+    public UnityEvent onNodeStart;
 }
 
 public class DialogueManager : MonoBehaviour
@@ -43,13 +47,13 @@ public class DialogueManager : MonoBehaviour
         Instance = this; 
     }
 
-    public void StartDialogue(List<DialogueNode> nodes)
+    // Добавили Action onCompleteCallback
+    public void StartDialogue(List<DialogueNode> nodes, Action onCompleteCallback = null)
     {
-        // Замораживаем игрока и мир через менеджер состояний
         if (GameStateManager.Instance != null) 
             GameStateManager.Instance.SetState(GameStateManager.GameState.MenuOpen);
 
-        if (gameplayUI != null) gameplayUI.SetActive(false); // Прячем кнопки игры
+        if (gameplayUI != null) gameplayUI.SetActive(false); 
         
         dialoguePanel.SetActive(true);
         nodesQueue.Clear();
@@ -59,6 +63,13 @@ public class DialogueManager : MonoBehaviour
             nodesQueue.Enqueue(node);
         }
 
+        // Перезаписываем событие завершения
+        OnDialogueFinished = null; 
+        if (onCompleteCallback != null)
+        {
+             OnDialogueFinished += onCompleteCallback;
+        }
+
         DisplayNextNode();
     }
 
@@ -66,7 +77,6 @@ public class DialogueManager : MonoBehaviour
     {
         if (isTyping)
         {
-            // Если игрок кликнул во время печати - моментально выводим весь текст
             StopAllCoroutines();
             dialogueText.text = currentFullText;
             isTyping = false;
@@ -81,6 +91,13 @@ public class DialogueManager : MonoBehaviour
 
         DialogueNode node = nodesQueue.Dequeue();
         
+        // === ВОТ ЗДЕСЬ СРАБАТЫВАЕТ СОБЫТИЕ КОНКРЕТНОЙ ФРАЗЫ ===
+        if (node.onNodeStart != null)
+        {
+            node.onNodeStart.Invoke();
+        }
+        // ======================================================
+
         nameText.text = node.speakerName;
         currentFullText = node.text;
 

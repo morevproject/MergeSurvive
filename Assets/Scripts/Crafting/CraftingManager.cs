@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,8 @@ public class CraftingManager : MonoBehaviour
 
     public delegate void RecipeAction(Recipe recipe);
     public static event RecipeAction OnRecipeDiscovered;
+
+    public static event Action OnMergeFailed;
 
     void Awake()
     {
@@ -166,6 +169,8 @@ public class CraftingManager : MonoBehaviour
                 return recipe;
             }
         }
+        // —юда мы доходим, если ни один рецепт не подошел
+        OnMergeFailed?.Invoke();
         return null;
     }
 

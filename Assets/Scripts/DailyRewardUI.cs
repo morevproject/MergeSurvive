@@ -30,10 +30,32 @@ public class DailyRewardUI : MonoBehaviour
 
     private void OnEnable()
     {
-        // Проверяем, проснулся ли уже менеджер, прежде чем требовать у него данные
         if (DailyStreakManager.Instance != null)
         {
             RefreshUI();
+        }
+
+        // Даем UIManager-у долю секунды на инициализацию, а затем замораживаем игру!
+        Invoke(nameof(FreezeGame), 0.05f); 
+    }
+
+    private void FreezeGame()
+    {
+        // Вызываем ТОТ САМЫЙ метод из UIManager, который прячет кнопки и стопит мобов
+        if (UIManager.Instance != null) 
+        {
+            UIManager.Instance.SetMenuState(true);
+        }
+    }
+
+    private void OnDisable()
+    {
+        CancelInvoke(nameof(FreezeGame)); // На случай, если окно закрыли мгновенно
+
+        // Размораживаем игру при закрытии окна
+        if (UIManager.Instance != null) 
+        {
+            UIManager.Instance.SetMenuState(false);
         }
     }
 
