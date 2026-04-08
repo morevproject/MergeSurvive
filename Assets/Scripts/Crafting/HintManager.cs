@@ -92,14 +92,18 @@ public class HintManager : MonoBehaviour
     // 1. Показываем лампочки
     public void Tutorial_ShowBulbsUI()
     {
-        // Показываем UI лампочек (но НЕ выдаем их через AddBulbs!)
+        // 1. Просто включаем саму плашку лампочек
         if (hintCountText != null) hintCountText.transform.parent.gameObject.SetActive(true);
         
-        // Временно прячем диалог Няни на 1.5 секунды, чтобы игрок рассмотрел новую кнопку
+        // 2. ПРОВЕРКА: Если диалог сейчас активен (идет туториал), то прячем его на время
         if (DialogueManager.Instance != null && DialogueManager.Instance.dialoguePanel != null)
         {
-            DialogueManager.Instance.dialoguePanel.SetActive(false);
-            Invoke(nameof(RestoreDialogue), 1.5f);
+            // Прячем только если панель СЕЙЧАС включена
+            if (DialogueManager.Instance.dialoguePanel.activeSelf)
+            {
+                DialogueManager.Instance.dialoguePanel.SetActive(false);
+                Invoke(nameof(RestoreDialogue), 1.5f);
+            }
         }
     }
 

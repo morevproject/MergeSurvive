@@ -16,8 +16,15 @@ public class MainSceneTutorial : MonoBehaviour
         {
             tutorialTriggered = true;
             Debug.Log("[MainTutorial] Туториал уже пройден ранее. Включаем UI тихо.");
-            HintManager.Instance.Tutorial_ShowBulbsUI();
-            CurrencyManager.Instance.gemsText.transform.parent.gameObject.SetActive(true);
+            
+            // Сначала включаем лампочки через HintManager (теперь там безопасная проверка)
+            if (HintManager.Instance != null) HintManager.Instance.Tutorial_ShowBulbsUI();
+            
+            // Включаем плашку алмазов напрямую, без вызова методов туториала
+            if (CurrencyManager.Instance != null && CurrencyManager.Instance.gemsText != null)
+            {
+                CurrencyManager.Instance.gemsText.transform.parent.gameObject.SetActive(true);
+            }
         }
         else
         {

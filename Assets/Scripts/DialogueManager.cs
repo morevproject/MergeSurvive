@@ -45,6 +45,12 @@ public class DialogueManager : MonoBehaviour
         // Убираем проверки if (Instance == null). 
         // Просто всегда перезаписываем ссылку на актуальный свежий объект в текущей сцене!
         Instance = this; 
+
+        // --- НОВОЕ: Автоматически прячем панель при старте сцены ---
+        if (dialoguePanel != null) 
+        {
+            dialoguePanel.SetActive(false);
+        }
     }
 
     // Добавили Action onCompleteCallback
