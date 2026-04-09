@@ -74,28 +74,28 @@ public class SoulItemUI : MonoBehaviour, IPointerClickHandler
 
     public void SetLocked(bool locked)
     {
-        isLocked = locked;
+        // Раньше тут была визуальная блокировка. Теперь мы её ИГНОРИРУЕМ!
+        isLocked = false; 
         
-        if (lockedOverlay != null) lockedOverlay.SetActive(locked);
+        // Навсегда прячем замочек
+        if (lockedOverlay != null) lockedOverlay.SetActive(false); 
         
+        // Возвращаем нормальный цвет иконке
         if (resourceSlotUI != null && resourceSlotUI.iconImage != null)
         {
-            resourceSlotUI.iconImage.color = locked ? Color.gray : Color.white;
+            resourceSlotUI.iconImage.color = Color.white; 
         }
 
+        // Всегда разрешаем перетаскивать (мёрджить) душу!
         if (dragComponent != null)
         {
-            dragComponent.enabled = !locked;
+            dragComponent.enabled = true; 
         }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (isLocked)
-        {
-            Debug.Log($"<color=red>Рецепт заблокирован! Нужен верстак {requiredTier} уровня.</color>");
-            return;
-        }
+        // Убрали старую проверку if (isLocked), теперь душа кликается всегда!
 
         if (isTutorialLocked) return; 
 

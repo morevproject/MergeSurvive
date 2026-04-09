@@ -29,6 +29,8 @@ public class CraftingDetailsUI : MonoBehaviour
     private List<CraftingIngredientUI> spawnedIngredients = new List<CraftingIngredientUI>();
     private float updateTimer = 0f;
 
+    private bool isWorkbenchTierMet = true;
+
     private void Awake()
     {
         Instance = this;
@@ -59,35 +61,53 @@ public class CraftingDetailsUI : MonoBehaviour
     }
 
     public void ShowRecipe(Recipe recipe)
-    {
-        if (recipe == null) return;
-        currentRecipe = recipe;
+ {
+     if (recipe == null) return;
+     currentRecipe = recipe;
 
-        if (detailsWindow != null) detailsWindow.SetActive(true);
+     if (detailsWindow != null) detailsWindow.SetActive(true);
 
-        ItemData resultItem = Resources.Load<ItemData>("Items/" + recipe.outputResourceName);
-        if (resultItem == null) resultItem = Resources.Load<ItemData>(recipe.outputResourceName);
+     ItemData resultItem = Resources.Load<ItemData>("Items/" + recipe.outputResourceName);
+     if (resultItem == null) resultItem = Resources.Load<ItemData>(recipe.outputResourceName);
 
-        if (resultItem != null)
-        {
-            if (resultIcon != null) resultIcon.sprite = resultItem.Icon;
-            if (resultNameText != null) resultNameText.text = resultItem.GetName();
-            if (resultDescriptionText != null) resultDescriptionText.text = resultItem.Description;
-        }
-        else
-        {
-            if (resultNameText != null) resultNameText.text = recipe.recipeName;
-        }
+     if (resultItem != null)
+     {
+         if (resultIcon != null) resultIcon.sprite = resultItem.Icon;
+         if (resultNameText != null) resultNameText.text = resultItem.GetName();
 
-        bool isCraftable = !recipe.isBaseResource && recipe.requiredIngredients.Count > 0;
+         // Задаем базовое описание
+         if (resultDescriptionText != null) resultDescriptionText.text = resultItem.Description;
+     }
+     else
+     {
+         if (resultNameText != null) resultNameText.text = recipe.recipeName;
+     }
 
-        if (createButton != null)
-        {
-            createButton.gameObject.SetActive(isCraftable);
-        }
+     // === НОВАЯ ЛОГИКА: ПРОВЕРКА ВЕРСТАКА ===
+     // ВНИМАНИЕ: Я использую PlayerPrefs для примера. 
+     // Замени "WorkbenchTier" на ту переменную, где ты реально хранишь уровень верстака!
+     int currentWorkbenchTier = PlayerPrefs.GetInt("WorkbenchTier", 1); 
+     isWorkbenchTierMet = currentWorkbenchTier >= recipe.requiredWorkbenchTier;
 
-        RefreshIngredientsList();
-    }
+     if (!isWorkbenchTierMet)
+     {
+         // Если верстак слабый, просто приклеиваем красное предупреждение в конец описания
+         if (resultDescriptionText != null) 
+         {
+             resultDescriptionText.text += $"\n\n<color=red><b>Необходим верстак {recipe.requiredWorkbenchTier} уровня</b></color>";
+         }
+     }
+     // =======================================
+
+     bool isCraftable = !recipe.isBaseResource && recipe.requiredIngredients.Count > 0;
+
+     if (createButton != null)
+     {
+         createButton.gameObject.SetActive(isCraftable);
+     }
+
+     RefreshIngredientsList();
+ }
 
     private void RefreshIngredientsList()
     {
@@ -172,25 +192,27 @@ public class CraftingDetailsUI : MonoBehaviour
     // === ИЗМЕНЕННЫЙ МЕТОД: УМНАЯ ПРОВЕРКА КНОПКИ ===
     private void UpdateCreateButtonState(bool isAvailable)
     {
-        if (createButton != null && createButton.gameObject.activeSelf)
-        {
-            // Спрашиваем Очередь: "Есть ли у тебя свободные места?"
-            bool hasQueueSpace = true;
-            if (WorldCraftingQueue.Instance != null)
-            {
-                hasQueueSpace = WorldCraftingQueue.Instance.craftingQueue.Count < WorldCraftingQueue.Instance.maxQueueSize;
-            }
+         if (createButton != null && createButton.gameObject.activeSelf)
+         {
+             // Спрашиваем Очередь: "Есть ли у тебя свободные места?"
+             bool hasQueueSpace = true;
+             if (WorldCraftingQueue.Instance != null)
+             {
+                 hasQueueSpace = WorldCraftingQueue.Instance.craftingQueue.Count < WorldCraftingQueue.Instance.maxQueueSize;
+             }
 
-            // Кнопка активна ТОЛЬКО если есть и ресурсы, и место в очереди
-            bool finalInteractable = isAvailable && hasQueueSpace;
-            createButton.interactable = finalInteractable;
-            
-            var btnText = createButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (btnText != null)
-            {
-                btnText.alpha = finalInteractable ? 1f : 0.5f;
-            }
-        }
+             // === ДОБАВИЛИ isWorkbenchTierMet В ПРОВЕРКУ ===
+             // Кнопка активна ТОЛЬКО если есть и ресурсы, и место в очереди, и верстак нужного уровня!
+             bool finalInteractable = isAvailable && hasQueueSpace && isWorkbenchTierMet;
+
+             createButton.interactable = finalInteractable;
+
+             var btnText = createButton.GetComponentInChildren<TextMeshProUGUI>();
+             if (btnText != null)
+             {
+                 btnText.alpha = finalInteractable ? 1f : 0.5f;
+             }
+         }
     }
 
     public void OnCreateButtonClicked()
