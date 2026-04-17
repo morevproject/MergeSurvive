@@ -140,7 +140,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8042309281576068715
 RectTransform:
   m_ObjectHideFlags: 0
@@ -395,6 +395,7 @@ MonoBehaviour:
   chatBubbleUI: {fileID: 6236121896895102746}
   chatBubbleButton: {fileID: 3664986652608803270}
   menuController: {fileID: 0}
+  disableInTutorial: 0
 --- !u!1 &8704218638163090529
 GameObject:
   m_ObjectHideFlags: 0
