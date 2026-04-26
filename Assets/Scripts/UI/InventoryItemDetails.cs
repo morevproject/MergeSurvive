@@ -122,15 +122,37 @@ public class InventoryItemDetails : MonoBehaviour
 
         if (targetSlotType.HasValue)
         {
-            if (EquipmentSlotUI.ActiveSlots.TryGetValue(targetSlotType.Value, out EquipmentSlotUI slot))
+            EquipmentSlotUI targetSlot = null;
+
+            // 1. Быстрый путь: ищем в словаре (сработает, если профиль сейчас открыт)
+            if (EquipmentSlotUI.ActiveSlots.TryGetValue(targetSlotType.Value, out EquipmentSlotUI activeSlot))
             {
-                slot.EquipItem(currentItem);
-                ClosePanel(); 
+                targetSlot = activeSlot;
             }
             else
             {
-                Debug.LogWarning($"[Inventory] Слот типа {targetSlotType.Value} не найден на сцене (возможно игрок не открыл профиль?)");
+                // 2. Надежный путь: ищем слот принудительно среди ВСЕХ объектов сцены (даже скрытых!)
+                // Параметр "true" заставляет Unity искать выключенные GameObject'ы
+                EquipmentSlotUI[] allSlots = FindObjectsOfType<EquipmentSlotUI>(true);
+            
+                foreach (var s in allSlots)
+                {
+                    // Сравниваем тип найденного слота с тем типом, который нужен нашему предмету
+                    if (s.slotType == targetSlotType.Value) 
+                    {
+                        targetSlot = s;
+                        break;
+                    }
+                }
             }
+
+            // Если нашли слот (а мы его теперь найдем в 99% случаев) — надеваем!
+            if (targetSlot != null)
+            {
+                targetSlot.EquipItem(currentItem);
+                ClosePanel(); 
+            }
+            // Варнинг мы убрали, игрок счастлив и может экипироваться прямо на ходу!
         }
     }
 

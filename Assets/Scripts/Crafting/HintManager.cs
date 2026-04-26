@@ -53,7 +53,21 @@ public class HintManager : MonoBehaviour
         if (shopPanel != null) shopPanel.SetActive(false);
     }
 
-    void Start() { UpdateUI(); }
+    void Start() 
+    { 
+        UpdateUI(); 
+
+        // === ФИКС БАГА: ПРОВЕРКА ПРИ ЗАГРУЗКЕ ИГРЫ ===
+        // Если игрок уже прошел туториал Няни (флаг PremiumUnlocked == 1),
+        // принудительно включаем плашку с лампочками при старте.
+        if (PlayerPrefs.GetInt("PremiumUnlocked", 0) == 1)
+        {
+            if (hintCountText != null && hintCountText.transform.parent != null)
+            {
+                hintCountText.transform.parent.gameObject.SetActive(true);
+            }
+        }
+    }
 
     void OnEnable() { if(PlayerStats.Instance) PlayerStats.Instance.OnStatsUpdated += UpdateUI; }
     
