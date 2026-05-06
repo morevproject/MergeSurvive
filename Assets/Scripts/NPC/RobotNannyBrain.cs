@@ -1,122 +1,122 @@
 ﻿using UnityEngine;
-using System; // Нужен для работы со временем (DateTime)
+using System; 
 
 public class RobotNannyBrain : MonoBehaviour
 {
     [Header("Tracking & Movement")]
     public Transform player;
-    public float maxDistance = 5f; // Если игрок дальше этого расстояния - робот летит за ним
-    public float stopDistance = 2.5f; // Ближе этого расстояния робот не подлетает (держит дистанцию)
-    public float moveSpeed = 3f; // Скорость полета
-    public float rotationSpeed = 5f; // Скорость поворота "головы"
+    public float maxDistance = 5f; 
+    public float stopDistance = 2.5f; 
+    public float rotationSpeed = 5f; 
+    public float smoothTime = 0.5f; // Чуть увеличил для красивого, вальяжного полета
 
-    private bool hasTriggeredTutorial = false; // Флаг, чтобы запустить тутор только один раз
+    [Header("AI Logic")]
+    public float decisionCooldown = 1f; // Как часто Няня "принимает решение" о перелете
+    private float currentCooldown = 0f;
+    private Vector3 currentTargetPosition; // Та самая фиксированная точка, куда мы летим
+    private Vector3 currentVelocity; 
+
+    private bool hasTriggeredTutorial = false; 
 
     [Header("Future Feature: Auto-Gathering")]
     public bool isAutoGatheringActive = false;
-    public string gatherSubscriptionEndTime; // Храним дату окончания текстом или через DateTime
+    public string gatherSubscriptionEndTime; 
 
     private void Start()
     {
-        // Авто-поиск игрока, если забыли назначить в Инспекторе
         if (player == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null) player = playerObj.transform;
         }
+
+        // Со старта точкой назначения считаем текущее местоположение
+        currentTargetPosition = transform.position;
     }
 
     private void Update()
     {
         if (player == null) return;
 
-        HandleTrackingAndMovement();
+        HandleAIAndMovement();
     }
 
-    private void HandleTrackingAndMovement()
+    private void HandleAIAndMovement()
     {
-        // 1. ПЛАВНЫЙ ПОВОРОТ (Смотрим на игрока)
-        Vector3 directionToPlayer = player.position - transform.position;
-        directionToPlayer.y = 0; // Игнорируем высоту, чтобы робот смотрел ровно, а не "кивал" в пол
+        // 1. ТАЙМЕР ПРИНЯТИЯ РЕШЕНИЙ (Уменьшаем каждый кадр)
+        currentCooldown -= Time.deltaTime;
         
-        if (directionToPlayer != Vector3.zero)
+        bool isTutorialWaiting = (TutorialManager.Instance != null && TutorialManager.Instance.currentStep == TutorialManager.TutorialStep.WaitNannyApproach);
+
+        // 2. ЛОГИКА "ПОДУМАТЬ" (Срабатывает только когда прошел КД)
+        if (currentCooldown <= 0f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
-            // Slerp делает поворот мягким и естественным
+            Vector3 flatRobotPos = new Vector3(transform.position.x, 0, transform.position.z);
+            Vector3 flatPlayerPos = new Vector3(player.position.x, 0, player.position.z);
+            float distanceToPlayer = Vector3.Distance(flatRobotPos, flatPlayerPos);
+
+            // Игрок ушел слишком далеко? Пора выбрать новую точку!
+            if (distanceToPlayer > maxDistance || isTutorialWaiting)
+            {
+                Vector3 directionToPlayer = (player.position - transform.position).normalized;
+                directionToPlayer.y = 0; 
+
+                // Высчитываем новую точку для парковки
+                currentTargetPosition = player.position - directionToPlayer * stopDistance;
+                
+                // Фиксируем высоту (например, на уровне 1.5 метра над ногами игрока)
+                currentTargetPosition.y = player.position.y + 1f;
+
+                // Уходим на кулдаун (Няня не будет менять цель следующую секунду)
+                currentCooldown = decisionCooldown;
+            }
+        }
+
+        // 3. ФИЗИЧЕСКИЙ ПОЛЕТ (Работает каждый кадр)
+        // Так как currentTargetPosition теперь НЕ меняется каждый кадр, полет будет идеальным!
+        transform.position = Vector3.SmoothDamp(
+            transform.position, 
+            currentTargetPosition, 
+            ref currentVelocity, 
+            smoothTime
+        );
+
+        // 4. ПОВОРОТ
+        // Пусть Няня всегда плавно поворачивается лицом к игроку - это добавляет ей "жизни"
+        Vector3 lookDirection = player.position - transform.position;
+        lookDirection.y = 0;
+        if (lookDirection != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
         }
 
-        // 2. ПОЛЕТ ЗА ИГРОКОМ
-        // Считаем дистанцию только по "земле" (оси X и Z), игнорируя высоту полета Няни!
-        Vector3 flatRobotPos = new Vector3(transform.position.x, 0, transform.position.z);
-        Vector3 flatPlayerPos = new Vector3(player.position.x, 0, player.position.z);
-        float distance = Vector3.Distance(flatRobotPos, flatPlayerPos);
-        
-        // Проверяем, ждет ли туториал нашего подлета
-        bool isTutorialWaiting = (TutorialManager.Instance != null && TutorialManager.Instance.currentStep == TutorialManager.TutorialStep.WaitNannyApproach);
-
-        // ЛЕТИМ, если игрок слишком далеко ИЛИ если мы в начале туториала!
-        if (distance > maxDistance || isTutorialWaiting)
-        {
-            // Вычисляем точку, где робот должен остановиться (stopDistance от игрока)
-            Vector3 targetPosition = player.position - directionToPlayer.normalized * stopDistance;
-            
-            // Фиксируем текущую высоту робота, чтобы он летел ровно и не врезался в землю
-            targetPosition.y = transform.position.y; 
-
-            // Lerp делает полет плавным: робот ускоряется при старте и замедляется при торможении
-            transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * moveSpeed);
-        }
-
         // --- ТРИГГЕР ТУТОРИАЛА ---
-        // Если робот подлетел достаточно близко (stopDistance + небольшая погрешность)
-        if (!hasTriggeredTutorial && distance <= stopDistance + 0.5f)
+        // Срабатывает, когда мы почти долетели до своей цели парковки
+        float currentDistToTarget = Vector3.Distance(transform.position, currentTargetPosition);
+        if (!hasTriggeredTutorial && isTutorialWaiting && currentDistToTarget < 1f)
         {
-            // Проверяем, существует ли менеджер и ждет ли он подлета Няни
-            if (TutorialManager.Instance != null && TutorialManager.Instance.currentStep == TutorialManager.TutorialStep.WaitNannyApproach)
-            {
-                hasTriggeredTutorial = true; // Запоминаем, что уже запустили
-                TutorialManager.Instance.AdvanceStep(); // Переключаем шаг туториала на диалог!
-            }
+            hasTriggeredTutorial = true; 
+            TutorialManager.Instance.AdvanceStep(); 
         }
     }
 
     // ==========================================
-    // 🏗️ АРХИТЕКТУРА ПОД БУДУЩИЕ ФИЧИ
+    // 🏗️ АРХИТЕКТУРА ПОД БУДУЩИЕ ФИЧИ (Оставлена без изменений)
     // ==========================================
 
     [ContextMenu("TEST: Activate Offline Gathering")]
     public void ActivateGathering(int daysAmount)
     {
         isAutoGatheringActive = true;
-        // Запоминаем время, когда робот перестанет собирать лут
         DateTime endTime = DateTime.Now.AddDays(daysAmount);
         gatherSubscriptionEndTime = endTime.ToString();
-        
         Debug.Log($"[RobotNanny] Режим оффлайн-сбора активирован до: {gatherSubscriptionEndTime}");
     }
 
-    public void ProcessOfflineLoot()
-    {
-        // Эта функция будет вызываться GameManager'ом при заходе в игру.
-        // Здесь мы будем парсить gatherSubscriptionEndTime, сравнивать с DateTime.Now
-        // и выдавать ресурсы в инвентарь игроку.
-    }
+    public void ProcessOfflineLoot() { }
 
-    public void ShowSpeechBubble()
-    {
-        // Здесь будем включать WorldSpace Canvas с облачком "..." над роботом
-        Debug.Log("[RobotNanny] *Показывает облачко мыслей*");
-    }
+    public void ShowSpeechBubble() { Debug.Log("[RobotNanny] *Показывает облачко мыслей*"); }
 
-    public void Interact()
-    {
-        // Метод для клика по роботу.
-        // Он будет передавать данные в DialogueManager, который включит затемнение
-        // и покажет аватарки в стиле Ghost Town Adventures.
-        Debug.Log("[RobotNanny] Игрок кликнул! Запускаю систему диалогов.");
-        
-        // В будущем тут будет что-то вроде:
-        // DialogueManager.Instance.StartDialogue(nannyDialogueTree);
-    }
+    public void Interact() { Debug.Log("[RobotNanny] Игрок кликнул! Запускаю систему диалогов."); }
 }

@@ -567,7 +567,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7960768348085379037, guid: ed97c5cfe18ad874cb5d75c84cb9ae47, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.84
+      value: 2.169
       objectReference: {fileID: 0}
     - target: {fileID: 7960768348085379037, guid: ed97c5cfe18ad874cb5d75c84cb9ae47, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2548,6 +2548,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 2082109800}
   offset: {x: 5, y: 4.5, z: -5}
+  smoothTime: 0.15
 --- !u!81 &1461011308
 AudioListener:
   m_ObjectHideFlags: 0
