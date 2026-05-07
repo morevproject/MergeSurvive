@@ -1,4 +1,4 @@
-using System.Collections; 
+п»їusing System.Collections; 
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +9,7 @@ public class InteractionUIManager : MonoBehaviour
     [SerializeField] private GameObject interactButton; 
     [SerializeField] private Text interactText;         
 
-    [Header("Настройки анимации")]
+    [Header("РќР°СЃС‚СЂРѕР№РєРё Р°РЅРёРјР°С†РёРё")]
     public float handGatherDelay = 3.15f; 
     public float toolGatherDelay = 0.5f;  
     public float toolGatherFinishDelay = 0.6f; 
@@ -75,6 +75,11 @@ public class InteractionUIManager : MonoBehaviour
         
         isGathering = true; 
 
+        // ===  Р–Р•РЎРўРљРћ Р‘Р›РћРљРР РЈР•Рњ Р”Р’РР–Р•РќРР• ===
+        PlayerMovement pm = FindObjectOfType<PlayerMovement>();
+        if (pm != null) pm.canMove = false;
+        // ===================================
+
         if (InteractionHandler.Instance != null)
         {
             InteractionHandler.Instance.FaceCurrentTarget();
@@ -112,13 +117,14 @@ public class InteractionUIManager : MonoBehaviour
             InteractionHandler.Instance.ForceRefresh();
         }
 
-        // === ПРЕДОХРАНИТЕЛЬ ОТ "СОСТОЯНИЯ ГОНКИ" ===
-        // Ждем 0.2 секунды, чтобы дать Аниматору и скриптам передвижения 
-        // 100% времени на полное возвращение управления игроку ДО того, 
-        // как мы снимем флаг isGathering и покажем кнопку атаки.
-        yield return new WaitForSeconds(1.9f);
+        // === РџР Р•Р”РћРҐР РђРќРРўР•Р›Р¬ РћРў "РЎРћРЎРўРћРЇРќРРЇ Р“РћРќРљР" ===
+        // РўР°Рє РєР°Рє Р°РЅРёРјР°С†РёРё С‚РµРїРµСЂСЊ Р±С‹СЃС‚СЂС‹Рµ, 1.9 СЃРµРєСѓРЅРґС‹ С‚СѓС‚ Р±РѕР»СЊС€Рµ РЅРµ РЅСѓР¶РЅРѕ. 
+        // РҐРІР°С‚РёС‚ Рё 0.2 СЃРµРє, С‡С‚РѕР±С‹ РґР°С‚СЊ РґРІРёР¶РєСѓ РІСЃС‘ РїР»Р°РІРЅРѕ Р·Р°РІРµСЂС€РёС‚СЊ.
+        yield return new WaitForSeconds(0.2f);
         // ============================================
 
+        // === рџџў Р’РћР—Р’Р РђР©РђР•Рњ Р”Р’РР–Р•РќРР• ===
+        if (pm != null) pm.canMove = true;
         isGathering = false; 
     }
 
@@ -161,11 +167,12 @@ public class InteractionUIManager : MonoBehaviour
         {
             if (neededToolType == "Axe" || neededToolType == "Pickaxe" || neededToolType == "Shovel")
             {
-                playerAnim.TriggerAttack(); 
+                ItemData currentTool = PlayerProfileUI.Instance.weaponSlot.currentItem;
+                playerAnim.TriggerSmartAttack(currentTool);
             }
             else
             {
-                playerAnim.TriggerGather(); 
+                playerAnim.TriggerCollect(); 
             }
         }
     }

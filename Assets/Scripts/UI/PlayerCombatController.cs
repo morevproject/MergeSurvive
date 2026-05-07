@@ -144,16 +144,13 @@ public class PlayerCombatController : MonoBehaviour
 
         nextAttackTime = Time.time + (isRanged ? rangedAttackCooldown : meleeAttackCooldown);
 
+        nextAttackTime = Time.time + (isRanged ? rangedAttackCooldown : meleeAttackCooldown);
+
         if (playerAnim != null) 
         {
-            if (isRanged)
-            {
-                playerAnim.animator.SetTrigger("doShoot"); 
-            }
-            else
-            {
-                playerAnim.TriggerAttack();
-            }
+            // Просто отдаем текущий предмет аниматору, пусть сам разбирается!
+            ItemData currentWeapon = PlayerProfileUI.Instance.weaponSlot.currentItem;
+            playerAnim.TriggerSmartAttack(currentWeapon);
         }
     }
 
