@@ -13,8 +13,8 @@ public class PlayerCombatController : MonoBehaviour
     public LayerMask enemyLayer; 
     
     [Header("Combat Cooldowns (Anti-Spam)")]
-    public float meleeAttackCooldown = 1.1f;  
-    public float rangedAttackCooldown = 1.6f; 
+    public float meleeAttackCooldown = 0.8f;  
+    public float rangedAttackCooldown = 0.3f; 
     private float nextAttackTime = 0f;        
 
     [Header("Ranged Combat")]

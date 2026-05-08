@@ -127,7 +127,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1.3418019
+  m_Radius: 1
   m_Center: {x: 0, y: -0.10332847, z: 0}
 --- !u!114 &4051102125051563283
 MonoBehaviour:
@@ -161,6 +161,8 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
+  meleeAttackCooldown: 0.8
+  rangedAttackCooldown: 0.3
   arrowPrefab: {fileID: 6155639302911638103, guid: 0a17917ddbf3fa342ac028a45f9c8625, type: 3}
   firePoint: {fileID: 3883983397196538866}
   playerAnim: {fileID: 5461254434851354182}
@@ -178,6 +180,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 9026834376404530771}
   rb: {fileID: 6746154277135125021}
+  playerMovement: {fileID: 0}
 --- !u!114 &696615413232352554
 MonoBehaviour:
   m_ObjectHideFlags: 0

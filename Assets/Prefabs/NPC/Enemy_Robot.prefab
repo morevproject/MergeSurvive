@@ -119,7 +119,7 @@ MonoBehaviour:
   changeDirectionTime: 3
   obstacleMask:
     serializedVersion: 2
-    m_Bits: 347
+    m_Bits: 859
   obstacleCheckDistance: 1.5
 --- !u!114 &1437231189750879342
 MonoBehaviour:

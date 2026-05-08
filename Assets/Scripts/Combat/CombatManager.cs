@@ -66,7 +66,7 @@ public class CombatManager : MonoBehaviour
         if (playerAnimScript != null) playerAnimScript.enabled = false;
         if (playerCombat != null) playerCombat.enabled = false; 
 
-        if (heroAnim != null) heroAnim.SetBool("isMoving", false);
+        if (heroAnim != null) heroAnim.SetFloat("Speed", 0f); // Сбрасываем Blend Tree в 0
 
         if (boss != null) boss.enabled = false;
         var agent = boss.GetComponent<UnityEngine.AI.NavMeshAgent>();
@@ -104,7 +104,7 @@ public class CombatManager : MonoBehaviour
 
         if (heroAnim != null) 
         {
-            heroAnim.SetBool("isMoving", true); 
+            heroAnim.SetFloat("Speed", 0.5f); // 0.5 - это шаг в нашем новом Blend Tree
             isMoving = true;
         }
         
@@ -133,7 +133,7 @@ public class CombatManager : MonoBehaviour
             yield return null; 
         }
 
-        if (heroAnim != null && isMoving) heroAnim.SetBool("isMoving", false);
+        if (heroAnim != null && isMoving) heroAnim.SetFloat("Speed", 0f);
         yield return new WaitForSeconds(0.5f); 
 
         Debug.Log("БОЙ: Дистанция сокращена. Начало раундов.");
@@ -167,7 +167,7 @@ public class CombatManager : MonoBehaviour
 
                 if (isRanged && projectilePrefab != null)
                 {
-                    yield return new WaitForSeconds(1.4f); 
+                    yield return new WaitForSeconds(0.3f); 
                     
                     // Спавним стрелу (чуть выше головы героя, чтобы из лука вылетала)
                     Vector3 spawnPos = hero.transform.position + Vector3.up * 1.5f;
