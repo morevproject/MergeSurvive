@@ -2548,7 +2548,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 2082109800}
   offset: {x: 5, y: 4.5, z: -5}
-  smoothTime: 0.15
 --- !u!81 &1461011308
 AudioListener:
   m_ObjectHideFlags: 0
@@ -3045,6 +3044,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6190748122762757185, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
+      propertyPath: playerMovement
+      value: 
+      objectReference: {fileID: 1766924063}
     - target: {fileID: 7272253566595140701, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
       propertyPath: m_Name
       value: Player_Past
@@ -3063,6 +3066,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5126883291509596230, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
   m_PrefabInstance: {fileID: 1766924061}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1766924063 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1360710638464147182, guid: fed978609e5184747bb671ed1dc1d97e, type: 3}
+  m_PrefabInstance: {fileID: 1766924061}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62ac1b01c79f8ae4aa49026166f09f67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1780094775
 PrefabInstance:
   m_ObjectHideFlags: 0
